@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "tslint -p tslint.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

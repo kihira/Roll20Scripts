@@ -7,15 +7,15 @@ declare function createObj(type: string, attributes: object): Roll20Object;
 declare function filterObjs(callback: (obj: Roll20Object) => void): Roll20Object[];
 declare function findObjs(attributes: object, options?: { caseInsensitive: boolean }): Roll20Object[];
 declare function getAllObjs(): Roll20Object[];
-declare function getAttrByName(character_id: string, attribute_name: string, value_type: "current"): string;
+declare function getAttrByName(character_id: string, attribute_name: string, value_type?: "current"|"max"): string;
 declare function getObj(type: string, id: string): Roll20Object;
 declare function log(message: any): void;
-declare function on(event: string, callback: () => void): void;
 declare function on(event: "chat:message", callback: (msg: Message) => void): void;
+declare function on(event: string, callback: () => void): void;
 declare function onSheetWorkerCompleted(callback: () => void): void;
 declare function playerIsGM(player_id: string): boolean;
 declare function randomInteger(max: number): number;
-declare function sendChat(speakingas: string, message: string, callback?: (msg) => void,
+declare function sendChat(speakingas: string, message: string, callback?: (msg: Message) => void,
                           options?: { noarchive: boolean, use3d: boolean }): void;
 declare function sendPing(left: number, top: number, page_id: string, player_id?: string, moveall?: boolean): void;
 declare function spawnFx(left: number, top: number, type: string, page_id?: string): void;
@@ -29,14 +29,13 @@ declare function toFront(obj: Roll20Object): void;
 interface Roll20Object {
     id: string;
 
-    get(parameter: string): string;
-
     /**
      * Asynchronous
      * @param {string} parameter
      * @param callback
      */
     get(parameter: string, callback: (value: string) => void): void;
+    get(parameter: string): string;
     remove(): void;
     set(property: string, value: string | number | boolean): void;
     set(attributes: object): void;
