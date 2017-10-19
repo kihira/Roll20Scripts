@@ -35,7 +35,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
     function getMarker() {
         let marker = findObjs({type: "graphic", imgsrc: state.TurnTracker.tokenURL})[0];
         if (marker === undefined) {
-            marker = createObj("graphic", {
+            marker = createObj(ObjTypes.Graphic, {
                 name: state.TurnTracker.tokenName,
                 pageid: Campaign().get("playerpageid"),
                 layer: "gmlayer",
@@ -82,8 +82,8 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         activatedTokens.push(tokenId);
 
         // Get tokens and update current token
-        const previousToken = getObj("graphic", currentTokenId);
-        const currentToken = getObj("graphic", tokenId);
+        const previousToken = getObj(ObjTypes.Graphic, currentTokenId);
+        const currentToken = getObj(ObjTypes.Graphic, tokenId);
         currentTokenId = tokenId;
 
         const pImage = previousToken.get("imgsrc");
@@ -117,7 +117,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         if (state.TurnMarker.announcePlayerInTurnAnnounce) {
             const characterId = currentToken.get("represents");
             if (characterId) {
-                const Char = getObj("character", characterId);
+                const Char = getObj(ObjTypes.Character, characterId);
                 if (Char && _.isFunction(Char.get)) {
                     const Controllers = Char.get("controlledby").split(",");
                     _.each(Controllers, (c) => {
@@ -139,7 +139,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                                 break;
 
                             default:
-                                const player = getObj("player", c);
+                                const player = getObj(ObjTypes.Player, c);
                                 if (player) {
                                     const PlayerColor = player.get("color");
                                     const PlayerName = player.get("displayname");

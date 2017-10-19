@@ -3,15 +3,15 @@
 declare var state: any;
 
 declare function Campaign(): Campaign;
-declare function createObj(type: string, attributes: object): Roll20Object;
+declare function createObj(type: ObjTypes, attributes: object): Roll20Object;
 declare function filterObjs(callback: (obj: Roll20Object) => void): Roll20Object[];
 declare function findObjs(attributes: object, options?: { caseInsensitive: boolean }): Roll20Object[];
 declare function getAllObjs(): Roll20Object[];
 declare function getAttrByName(character_id: string, attribute_name: string, value_type?: "current"|"max"): string;
-declare function getObj(type: string, id: string): Roll20Object;
+declare function getObj(type: ObjTypes, id: string): Roll20Object;
 declare function log(message: any): void;
 declare function on(event: "chat:message", callback: (msg: Message) => void): void;
-declare function on(event: string, callback: () => void): void;
+declare function on(event: string, callback: (obj?: any, prev?: any) => void): void;
 declare function onSheetWorkerCompleted(callback: () => void): void;
 declare function playerIsGM(player_id: string): boolean;
 declare function randomInteger(max: number): number;
@@ -21,10 +21,31 @@ declare function sendPing(left: number, top: number, page_id: string, player_id?
 declare function spawnFx(left: number, top: number, type: string, page_id?: string): void;
 declare function spawnFxBetweenPoints(start: {x: number, y: number}, end: {x: number, y: number}, type: string,
                                       page_id?: string): void;
-declare function spawnFxWithDefinition(left: number, top: number, definition: object, page_id?: string): void;
+declare function spawnFxWithDefinition(left: number, top: number, definition: CustomFX, page_id?: string): void;
 declare function stopJukeboxPlaylist(): void;
 declare function toBack(obj: Roll20Object): void;
 declare function toFront(obj: Roll20Object): void;
+
+declare const enum ObjTypes {
+    Character = "character",
+    Graphic = "graphic",
+    Player = "player",
+    Path = "path",
+    Text = "text",
+    Page = "page",
+    Campaign = "campaign",
+    Macro = "macro",
+    RollableTable = "rollabletable",
+    TableItem = "tableitem",
+    Attribute = "attribute",
+    Ability = "ability",
+    Handout = "handout",
+    Deck = "deck",
+    Card = "card",
+    Hand = "hand",
+    Track = "jukeboxtrack",
+    CustomFX = "custfx",
+}
 
 interface Roll20Object {
     id: string;
@@ -61,4 +82,19 @@ interface Message {
     target?: string;
     target_name?: string;
     selected?: Array<{_id: string, _type: string}>;
+}
+
+interface CustomFX {
+    angle: number;
+    duration?: number;
+    emissionRate: number;
+    gravity: {x: number, y: number};
+    lifeSpan: number;
+    maxParticles: number;
+    size: number;
+    speed: number;
+    startColour: number[];
+    endColour: number[];
+    onDeath: string;
+    // todo [effect]Random
 }
