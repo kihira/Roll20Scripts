@@ -16,7 +16,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
     }
 
-    function handleInput(msg) {
+    function handleInput(msg: Message) {
         if (msg.type !== "api" || !msg.content.startsWith("!turntracker")) return;
 
         const tokenized = msg.content.split(" ");
@@ -75,7 +75,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         });
     }
 
-    function claimSlot(playerId, tokenId) {
+    function claimSlot(playerId: string, tokenId: string) {
         if (_.contains(activatedTokens, tokenId)) {
             sendChat("", `/w player|${playerId} Cannot claim slot for this token, has already acted`);
             return;
@@ -232,7 +232,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         turnOrderChange();
     }
 
-    function checkTokenMove(obj) {
+    function checkTokenMove(obj: Roll20Object) {
         if (active && currentTokenId) {
             const marker = getMarker();
             marker.set({
@@ -243,7 +243,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         }
     }
 
-    function handleTurnOrderChange(obj, prev) {
+    function handleTurnOrderChange(obj: Campaign, prev: Campaign) {
         const prevOrder = JSON.parse(prev.turnorder);
         const objOrder = JSON.parse(obj.get("turnorder"));
 
@@ -254,7 +254,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         }
     }
 
-    function handleDestroyGraphic(obj) {
+    function handleDestroyGraphic(obj: Roll20Object) {
 
     }
 
@@ -287,16 +287,22 @@ function sortTracker() {
     // var roundIndex = _.findIndex(turnOrder, function (value) { return value["custom"].startsWith("ROUND"); });
     // log("Round index: " + roundIndex);
 
-    turnOrder.sort((a, b) => {
-        let aValues = a.pr.split(":");
-        let bValues = b.pr.split(":");
+    turnOrder.sort((a: TurnOrderEntry, b: TurnOrderEntry) => {
         if (a.custom.startsWith("ROUND")) return 100;
+
+        const aValues: number[] = [];
+        const bValues: number[] = [];
+        _.each(a.pr.split(":"), (value) => {
+            aValues.push(parseInt(value, 10));
+        });
+        _.each(b.pr.split(":"), (value) => {
+            bValues.push(parseInt(value, 10));
+        });
+
         if (aValues.length !== 2 || bValues.length !== 2) {
             log("Not valid data");
             return 0; // Don't sort if not valid data
         }
-        aValues = [parseInt(aValues[0], 10), parseInt(aValues[1], 10)];
-        bValues = [parseInt(bValues[0], 10), parseInt(bValues[1], 10)];
 
         // Sort by successes
         if (aValues[0] > bValues[0]) return -1;

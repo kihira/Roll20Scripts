@@ -2,6 +2,10 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es2016",
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
     "sourceMap": true,
     "outDir": "build"
   },
