@@ -17,7 +17,8 @@
   },
   "homepage": "https://github.com/kihira/Roll20Scripts#readme",
   "devDependencies": {
-    "@types/underscore": "^1.8.3"
+    "@types/underscore": "^1.8.3",
+    "tslint": "^5.7.0"
   },
   "dependencies": {
     "typescript": "^2.5.3"
