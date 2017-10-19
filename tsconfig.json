@@ -5,8 +5,8 @@
     "noImplicitAny": true,
     "noImplicitThis": true,
     "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "sourceMap": true,
+    "sourceMap": false,
+    "removeComments": true,
     "outDir": "build"
   },
   "exclude": [
