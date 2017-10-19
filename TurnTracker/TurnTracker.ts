@@ -13,6 +13,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
             state.TurnTracker.tokenURL = "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png?1400535580";
             state.TurnTracker.tokenName = "Name";
         }
+
     }
 
     function handleInput(msg) {
