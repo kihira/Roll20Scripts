@@ -1,3 +1,5 @@
+/* tslint:disable:variable-name */
+
 declare function on(event: string, callback: (eventInfo: EventInfo) => {}): void;
 declare function getAttrs(attributeNameArray: string[], callback: (values) => {}): void;
 declare function setAttrs(values: object, options?: {silent: boolean}, callback?: () => {}): void;
@@ -9,9 +11,9 @@ declare function getTranslationLanguage(): string;
 declare function setDefaultToken(values: string[]): void;
 
 interface EventInfo {
-    sourceAttribute: string
-    sourceType: "player" | "scriptworker"
-    previousValue?: any
-    newValue?: any
-    removedInfo?: object
+    sourceAttribute: string;
+    sourceType: "player" | "scriptworker";
+    previousValue?: any;
+    newValue?: any;
+    removedInfo?: object;
 }
