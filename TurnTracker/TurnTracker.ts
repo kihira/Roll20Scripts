@@ -274,11 +274,6 @@ on("ready", () => {
     TurnTracker.SetupEventHandlers();
 });
 
-on("change:campaign:turnorder", (obj, prev) => {
-    // TODO can't do this here as this is called each time you click the advance button. the code should be added to the diceroller script instead when I eventually rewrite it
-    // sortTracker();
-});
-
 on("chat:message", (msg) => {
     if (msg.type === "api" && msg.content === "!tracker sort") {
         sortTracker();
