@@ -18,5 +18,8 @@
   "homepage": "https://github.com/kihira/Roll20Scripts#readme",
   "devDependencies": {
     "@types/underscore": "^1.8.3"
+  },
+  "dependencies": {
+    "typescript": "^2.5.3"
   }
 }
