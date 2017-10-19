@@ -1,7 +1,7 @@
 /* tslint:disable:variable-name */
 
 declare function on(event: string, callback: (eventInfo: EventInfo) => {}): void;
-declare function getAttrs(attributeNameArray: string[], callback: (values) => {}): void;
+declare function getAttrs(attributeNameArray: string[], callback: (values: string) => {}): void;
 declare function setAttrs(values: object, options?: {silent: boolean}, callback?: () => {}): void;
 declare function getSectionIDs(section_name: string, callback: (ids: string[]) => {}): void;
 declare function generateRowID(): string;

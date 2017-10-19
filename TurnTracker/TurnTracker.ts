@@ -196,10 +196,10 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
     function turnOrderChange() {
         if (!Campaign().get("initiativepage")) return;
 
-        const turnOrder = JSON.parse(Campaign().get("turnorder"));
+        const turnOrder: TurnOrderEntry[] = JSON.parse(Campaign().get("turnorder"));
         if (turnOrder.length === 0) return;
 
-        const current: TurnOrderEntry = _.first(turnOrder);
+        const current: TurnOrderEntry = (_.first(turnOrder) as TurnOrderEntry);
 
         switch (current.custom) {
             case "PC":
@@ -228,7 +228,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
     function advanceTurnOrder() {
         const turnOrder = JSON.parse(Campaign().get("turnorder"));
-        Campaign().set("turnorder", JSON.stringify(_.rest(turnOrder).push(_.first(turnOrder))));
+        Campaign().set("turnorder", JSON.stringify(_.rest(turnOrder).push((_.first(turnOrder) as TurnOrderEntry))));
         turnOrderChange();
     }
 
@@ -244,7 +244,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
     }
 
     function handleTurnOrderChange(obj: Campaign, prev: Campaign) {
-        const prevOrder = JSON.parse(prev.turnorder);
+        const prevOrder = JSON.parse(prev.get("turnorder"));
         const objOrder = JSON.parse(obj.get("turnorder"));
 
         turnOrderChange();
