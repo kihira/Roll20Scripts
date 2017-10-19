@@ -1,4 +1,4 @@
-let TurnTracker = (() => {
+let TurnTracker = (() => { // todo need to check this works as an arrow function
     "use strict";
 
     let currentTokenId: string;
@@ -88,8 +88,8 @@ let TurnTracker = (() => {
 
         const pImage = previousToken.get("imgsrc");
         const cImage = currentToken.get("imgsrc");
-        const pRatio = parseInt(previousToken.get("width")) / parseInt(previousToken.get("height"));
-        const cRatio = parseInt(currentToken.get("width")) / parseInt(currentToken.get("height"));
+        const pRatio = parseInt(previousToken.get("width"), 10) / parseInt(previousToken.get("height"), 10);
+        const cRatio = parseInt(currentToken.get("width"), 10) / parseInt(currentToken.get("height"), 10);
 
         let pNameString = "The Previous turn is done.";
         if (previousToken && previousToken.get("showplayers_name")) {
@@ -120,7 +120,7 @@ let TurnTracker = (() => {
                 const Char = getObj("character", characterId);
                 if (Char && _.isFunction(Char.get)) {
                     const Controllers = Char.get("controlledby").split(",");
-                    _.each(Controllers, function(c){
+                    _.each(Controllers, (c) => {
                         switch (c) {
                             case "all":
                                 PlayerAnnounceExtra += '<div style="' +
@@ -216,7 +216,7 @@ let TurnTracker = (() => {
                 break;
             case "ROUND":
                 activatedTokens = [];
-                current.pr = (parseInt(current.pr) + 1).toString();
+                current.pr = (parseInt(current.pr, 10) + 1).toString();
 
                 sendChat("", current.pr);
 
@@ -265,9 +265,9 @@ let TurnTracker = (() => {
 
     return {
         Init: init,
-        SetupEventHandlers: setupEventHandlers
+        SetupEventHandlers: setupEventHandlers,
     };
-}());
+})();
 
 on("ready", () => {
     TurnTracker.Init();
@@ -288,8 +288,8 @@ on("chat:message", (msg) => {
 function sortTracker() {
     const turnOrder = JSON.parse(Campaign().get("turnorder") || "[]");
 
-    //var roundIndex = _.findIndex(turnOrder, function (value) { return value["custom"].startsWith("ROUND"); });
-    //log("Round index: " + roundIndex);
+    // var roundIndex = _.findIndex(turnOrder, function (value) { return value["custom"].startsWith("ROUND"); });
+    // log("Round index: " + roundIndex);
 
     turnOrder.sort((a, b) => {
         let aValues = a.pr.split(":");
@@ -299,8 +299,8 @@ function sortTracker() {
             log("Not valid data");
             return 0; // Don't sort if not valid data
         }
-        aValues = [parseInt(aValues[0]), parseInt(aValues[1])];
-        bValues = [parseInt(bValues[0]), parseInt(bValues[1])];
+        aValues = [parseInt(aValues[0], 10), parseInt(aValues[1], 10)];
+        bValues = [parseInt(bValues[0], 10), parseInt(bValues[1], 10)];
 
         // Sort by successes
         if (aValues[0] > bValues[0]) return -1;

@@ -4,6 +4,9 @@
         "tslint:recommended"
     ],
     "jsRules": {},
-    "rules": {},
+    "rules": {
+        "curly": [true, "as-needed"],
+        "interface-name": [true, "never-prefix"]
+    },
     "rulesDirectory": []
 }
