@@ -27,6 +27,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                 break;
             case "finish":
                 active = false;
+                currentTokenId = "";
                 if (state.TurnTracker.clearOnFinish) Campaign().set("turnorder", "");
                 break;
             case "claim":
@@ -84,37 +85,14 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         activatedTokens.push(tokenId);
 
         // Get tokens and update current token
-        const previousToken = getObj(ObjTypes.Graphic, currentTokenId);
         const currentToken = getObj(ObjTypes.Graphic, tokenId);
         currentTokenId = tokenId;
         checkTokenMove(currentToken);
 
-        const pImage = previousToken.get("imgsrc");
         const cImage = currentToken.get("imgsrc");
-        const pRatio = parseInt(previousToken.get("width"), 10) / parseInt(previousToken.get("height"), 10);
         const cRatio = parseInt(currentToken.get("width"), 10) / parseInt(currentToken.get("height"), 10);
 
-        let pNameString = "The Previous turn is done.";
-        if (previousToken && previousToken.get("showplayers_name")) {
-            pNameString = "<span style='" +
-                'font-family: Baskerville, "Baskerville Old Face", "Goudy Old Style", Garamond, "Times New Roman", serif;' +
-                "text-decoration: underline;" +
-                "font-size: 130%;" +
-                "'>" +
-                previousToken.get("name") +
-                "</span>'s turn is done.";
-        }
-
         let cNameString = "The next turn has begun!";
-        if (currentToken && currentToken.get("showplayers_name")) {
-            cNameString = "<span style='" +
-                'font-family: Baskerville, "Baskerville Old Face", "Goudy Old Style", Garamond, "Times New Roman", serif;' +
-                "text-decoration: underline;" +
-                "font-size: 130%;" +
-                "'>" +
-                currentToken.get("name") +
-                "</span>, it's now your turn!";
-        }
 
         let PlayerAnnounceExtra = '<a style="position:relative;z-index:10000; top:-1em;float: right;font-size: .6em; color: white; border: 1px solid #cccccc; border-radius: 1em; margin: 0 .1em; font-weight: bold; padding: .1em .4em;" href="!eot">EOT &' + "#x21e8;</a>";
         if (state.TurnMarker.announcePlayerInTurnAnnounce) {
@@ -174,12 +152,6 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
             "",
             "/direct " +
             "<div style='border: 3px solid #808080; background-color: #4B0082; color: white; padding: 1px 1px;'>" +
-            '<div style="text-align: left;  margin: 5px 5px;">' +
-            '<a style="position:relative;z-index:1000;float:left; background-color:transparent;border:0;padding:0;margin:0;display:block;" href="!tm ping-target ' + previousToken.id + '">' +
-            "<img src='" + pImage + "' style='width:" + Math.round(tokenSize * pRatio) + "px; height:" + tokenSize + "px; padding: 0px 2px;' />" +
-            "</a>" +
-            pNameString +
-            "</div>" +
             '<div style="text-align: right; margin: 5px 5px; position: relative; vertical-align: text-bottom;">' +
             '<a style="position:relative;z-index:1000;float:right; background-color:transparent;border:0;padding:0;margin:0;display:block;" href="!tm ping-target ' + currentTokenId + '">' +
             "<img src='" + cImage + "' style='width:" + Math.round(tokenSize * cRatio) + "px; height:" + tokenSize + "px; padding: 0px 2px;' />" +
@@ -195,27 +167,83 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         );
     }
 
+    function announceEndTurn() {
+        const previousToken = getObj(ObjTypes.Graphic, currentTokenId);
+        const img = previousToken.get("imgsrc");
+        const imgAspect = parseInt(previousToken.get("width"), 10) / parseInt(previousToken.get("height"), 10);
+        let pNameString = "The Previous turn is done.";
+        if (previousToken && previousToken.get("showplayers_name")) {
+            pNameString = "<span style='" +
+                'font-family: Baskerville,"Baskerville Old Face","Goudy Old Style",Garamond,"Times New Roman",serif;' +
+                "text-decoration: underline;" +
+                "font-size: 130%;" +
+                "'>" +
+                previousToken.get("name") +
+                "</span>'s turn is done.";
+        }
+        const tokenSize = 70;
+        sendChat("",
+            "/direct " +
+            '<div style="text-align: left;  margin: 5px 5px;">' +
+            '<a style="position:relative;z-index:1000;float:left; background-color:transparent;border:0;padding:0;margin:0;display:block;" href="!tm ping-target ' + previousToken.id + '">' +
+            "<img src='" + img + "' style='width:" + Math.round(tokenSize * imgAspect) + "px; height:" + tokenSize + "px; padding: 0px 2px;' />" +
+            "</a>" +
+            pNameString +
+            "</div>");
+    }
+
+    function announceTurn(who: string, tokenIds: Roll20Object[]) {
+        let tokenContent = "";
+        _.each(tokenIds, ((value) => {
+            tokenContent +=
+                `<a style='width:36px;height:36px;margin:1px;background:none;padding:0;border:none;' href='!turntracker claim ${value.id}'>` +
+                `<img src="${value.get("imgsrc")}"/></a>`;
+        }));
+
+        sendChat("",
+            "/direct " +
+            `<div style='padding: 1px;color:white;border:10px solid transparent;` +
+            // todo border-image seems to be stripped by roll20 unfortunately
+            `border-image:url(http://imgsrv.roll20.net/?src=i.imgur.com/NjP3JsT.png) 15 fill;` +
+            `background:#284666;` +
+            `font-family:"teuton mager","helvetica neue","helvetica","arial",sans-serif;font-weight:bold;'>` +
+            `<div style='text-align:center;font-size:20px;padding:5px 0 5px 5px;vertical-align:text-top'>${who} Turn</div>` +
+            "<hr style='border-top:none;margin-top:15px;'>" +
+            "<span style='position:absolute;top:54px;font-size:10px'>Remaining tokens</span>" +
+            tokenContent +
+            "</div>");
+    }
+
+    function announceClaimTurn() {
+        // todo make sure the name/icon is hidden if not visible to players?
+    }
+
     function turnOrderChange() {
         if (!Campaign().get("initiativepage")) return;
 
         const turnOrder: TurnOrderEntry[] = getTurnOrder();
-        if (turnOrder.length === 0) return;
-
         const current: TurnOrderEntry | undefined = _.first(turnOrder);
         if (current === undefined) return;
 
+        // Announce end of turn if there was a previous one
+        if (currentTokenId) {
+            announceEndTurn();
+        }
+
         switch (current.custom) {
             case "PC":
-                _.each(getPlayerTokens(), (value) => {
-                    whisperPlayer(value.get("controlledby"), `[Claim Slot](!turntracker claim ${value.get("id")})`);
-                });
+                announceTurn("PC", getPlayerTokens());
+                // _.each(getPlayerTokens(), (value) => {
+                //     whisperPlayer(value.get("controlledby"), `[Claim Slot](!turntracker claim ${value.get("id")})`);
+                // });
                 break;
             case "NPC":
-                let message = "";
-                _.each(getNpcTokens(), (value) => {
-                    message += "[Claim Slot](!turntracker claim " + value.get("id") + ")";
-                });
-                sendChat("", "/w gm " + message);
+                announceTurn("NPC", getNpcTokens());
+                // let message = "";
+                // _.each(getNpcTokens(), (value) => {
+                //     message += `[${value.get("name")}](!turntracker claim ${value.get("id")})`;
+                // });
+                // sendChat("", "/w gm " + message);
                 break;
             case "ROUND":
                 activatedTokens = [];
