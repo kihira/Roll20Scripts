@@ -10,6 +10,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
             state.TurnTracker = {
                 tokenURL: "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png",
                 tokenName: "TurnTracker",
+                clearOnFinish: true,
             };
         }
     }
@@ -21,12 +22,16 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         const args = _.drop(tokenized, 2);
         switch (tokenized[1]) {
             case "start":
+                active = true;
                 turnOrderChange();
                 break;
             case "finish":
+                active = false;
+                if (state.TurnTracker.clearOnFinish) Campaign().set("turnorder", "");
                 break;
             case "claim":
-                if (args.length === 0) sendChat("", "/w player|" + msg.playerid + " Missing token id");
+                if (!active) whisperPlayer(msg.playerid, "TurnTracker not active yet, cannot claim slot");
+                if (args.length === 0) whisperPlayer(msg.playerid, "Missing token id");
                 else claimSlot(msg.playerid, args[0]);
                 break;
         }
@@ -73,7 +78,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
     function claimSlot(playerId: string, tokenId: string) {
         if (_.contains(activatedTokens, tokenId)) {
-            sendChat("", `/w player|${playerId} Cannot claim slot for this token, has already acted`);
+            whisperPlayer(playerId, "Cannot claim slot for this token, has already acted");
             return;
         }
         activatedTokens.push(tokenId);
@@ -202,14 +207,13 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         switch (current.custom) {
             case "PC":
                 _.each(getPlayerTokens(), (value) => {
-                    sendChat("",
-                        `/w player|${value.get("controlledby")} [Claim Slot](!turntracker claim ${value.get("id")})`);
+                    whisperPlayer(value.get("controlledby"), `[Claim Slot](!turntracker claim ${value.get("id")})`);
                 });
                 break;
             case "NPC":
                 let message = "";
                 _.each(getNpcTokens(), (value) => {
-                    message += "[Claim Slot](!turntracker claim " + value.get("id") + ")\n";
+                    message += "[Claim Slot](!turntracker claim " + value.get("id") + ")";
                 });
                 sendChat("", "/w gm " + message);
                 break;
@@ -251,6 +255,12 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         turnOrderChange();
     }
 
+    function whisperPlayer(playerId: string, msg: string) {
+        sendChat("", `/w player|${playerId} ${msg}`);
+    }
+
+    /* Function Handlers */
+
     function checkTokenMove(obj: Roll20Object) {
         if (active && currentTokenId) {
             const marker = getMarker();
@@ -277,6 +287,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
     function setupEventHandlers() {
         on("change:campaign:turnorder", handleTurnOrderChange);
+        on("change:graphic", checkTokenMove);
         on("destroy:graphic", handleDestroyGraphic);
         on("chat:message", handleInput);
     }
