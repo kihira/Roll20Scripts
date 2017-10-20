@@ -8,12 +8,10 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
     function init() {
         if (state.TurnTracker === undefined) {
             state.TurnTracker = {
-                tokenURL: "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png?1400535580",
+                tokenURL: "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png",
+                tokenName: "TurnTracker",
             };
-            state.TurnTracker.tokenURL = "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png?1400535580";
-            state.TurnTracker.tokenName = "Name";
         }
-
     }
 
     function handleInput(msg: Message) {
@@ -23,6 +21,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         const args = _.drop(tokenized, 2);
         switch (tokenized[1]) {
             case "start":
+                turnOrderChange();
                 break;
             case "finish":
                 break;
@@ -33,7 +32,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         }
     }
 
-    function getMarker() {
+    function getMarker(): Roll20Object {
         let marker = findObjs({type: "graphic", imgsrc: state.TurnTracker.tokenURL})[0];
         if (marker === undefined) {
             marker = createObj(ObjTypes.Graphic, {
@@ -45,10 +44,6 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                 right: 0,
                 height: 70,
                 width: 70,
-                bar2_value: 0,
-                showplayers_name: true,
-                showplayers_aura1: true,
-                showplayers_aura2: true,
             });
         }
 
@@ -57,11 +52,12 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
     // Gets remaining player tokens
     function getPlayerTokens() {
-        const currPage = Campaign().get("playerpageid"); // need to use playerpageid as initiativepage returns true or false
+        const currPage = Campaign().get("playerpageid");
         return filterObjs((value) => {
             if (value.get("type") !== "graphic" || value.get("subtype") !== "token") return false;
             if (!value.get("represents") || !value.get("controlledby")) return false;
-            return !_.contains(value.get("controlledby").split(","), "all") && !_.contains(activatedTokens, value.get("id")) && value.get("pageid") === currPage;
+            return !_.contains(value.get("controlledby").split(","), "all") &&
+                !_.contains(activatedTokens, value.get("id")) && value.get("pageid") === currPage;
         });
     }
 
@@ -86,6 +82,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         const previousToken = getObj(ObjTypes.Graphic, currentTokenId);
         const currentToken = getObj(ObjTypes.Graphic, tokenId);
         currentTokenId = tokenId;
+        checkTokenMove(currentToken);
 
         const pImage = previousToken.get("imgsrc");
         const cImage = currentToken.get("imgsrc");
@@ -196,7 +193,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
     function turnOrderChange() {
         if (!Campaign().get("initiativepage")) return;
 
-        const turnOrder: TurnOrderEntry[] = JSON.parse(Campaign().get("turnorder"));
+        const turnOrder: TurnOrderEntry[] = getTurnOrder();
         if (turnOrder.length === 0) return;
 
         const current: TurnOrderEntry | undefined = _.first(turnOrder);
@@ -239,6 +236,14 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                 advanceTurnOrder(turnOrder);
                 break;
         }
+    }
+
+    /**
+     * Handy function to always return an array when getting the turn order
+     * @returns {TurnOrderEntry[]}
+     */
+    function getTurnOrder(): TurnOrderEntry[] {
+        return JSON.parse(Campaign().get("turnorder") || "[]");
     }
 
     function advanceTurnOrder(turnOrder: TurnOrderEntry[]) {
