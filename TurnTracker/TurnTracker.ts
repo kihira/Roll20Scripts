@@ -243,8 +243,8 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         }
     }
 
-    function handleTurnOrderChange(obj: Campaign, prev: Campaign) {
-        const prevOrder = JSON.parse(prev.get("turnorder"));
+    function handleTurnOrderChange(obj: Campaign, prev: {turnorder: string}) {
+        const prevOrder = JSON.parse(prev.turnorder);
         const objOrder = JSON.parse(obj.get("turnorder"));
 
         turnOrderChange();
