@@ -220,7 +220,21 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                 activatedTokens = [];
                 current.pr = (parseInt(current.pr, 10) + 1).toString();
 
-                sendChat("", current.pr);
+                sendChat("",
+                    "/direct " +
+                    "<div style='" +
+                    `background: url("http://imgsrv.roll20.net/?src=i.imgur.com/NjP3JsT.png") no-repeat center;` +
+                    `font-family: "Teuton Mager","Helvetica Neue",Helvetica,Arial,sans-serif;` +
+                    "background-size: contain;" +
+                    "font-size: 20px;" +
+                    "text-align: center;" +
+                    "vertical-align: top;" +
+                    "color: white;" +
+                    "font-weight: bold;" +
+                    "padding: 10px;" +
+                    "'>" +
+                    "Round " + current.pr +
+                    "</div>");
 
                 advanceTurnOrder(turnOrder);
                 break;
