@@ -95,55 +95,53 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         let cNameString = "The next turn has begun!";
 
         let PlayerAnnounceExtra = '<a style="position:relative;z-index:10000; top:-1em;float: right;font-size: .6em; color: white; border: 1px solid #cccccc; border-radius: 1em; margin: 0 .1em; font-weight: bold; padding: .1em .4em;" href="!eot">EOT &' + "#x21e8;</a>";
-        if (state.TurnMarker.announcePlayerInTurnAnnounce) {
-            const characterId = currentToken.get("represents");
-            if (characterId) {
-                const Char = getObj(ObjTypes.Character, characterId);
-                if (Char && _.isFunction(Char.get)) {
-                    const Controllers = Char.get("controlledby").split(",");
-                    _.each(Controllers, (c) => {
-                        switch (c) {
-                            case "all":
+        const characterId = currentToken.get("represents");
+        if (characterId) {
+            const Char = getObj(ObjTypes.Character, characterId);
+            if (Char && _.isFunction(Char.get)) {
+                const Controllers = Char.get("controlledby").split(",");
+                _.each(Controllers, (c) => {
+                    switch (c) {
+                        case "all":
+                            PlayerAnnounceExtra += '<div style="' +
+                                "padding: 0px 5px;" +
+                                "font-weight: bold;" +
+                                "text-align: center;" +
+                                "font-size: 100%;" +
+                                "border: 5px solid black;" +
+                                "background-color: white;" +
+                                "color: black;" +
+                                "letter-spacing: 3px;" +
+                                "line-height: 130%;" +
+                                '">' +
+                                "All" +
+                                "</div>";
+                            break;
+
+                        default:
+                            const player = getObj(ObjTypes.Player, c);
+                            if (player) {
+                                const PlayerColor = player.get("color");
+                                const PlayerName = player.get("displayname");
                                 PlayerAnnounceExtra += '<div style="' +
-                                    "padding: 0px 5px;" +
-                                    "font-weight: bold;" +
+                                    "padding: 5px;" +
                                     "text-align: center;" +
-                                    "font-size: " + state.TurnMarker.announcePlayerInTurnAnnounceSize + ";" +
-                                    "border: 5px solid black;" +
-                                    "background-color: white;" +
-                                    "color: black;" +
+                                    "font-size: 100%;" +
+                                    "background-color: " + PlayerColor + ";" +
+                                    "text-shadow: " +
+                                    "-1px -1px 1px #000," +
+                                    " 1px -1px 1px #000," +
+                                    "-1px  1px 1px #000," +
+                                    " 1px  1px 1px #000;" +
                                     "letter-spacing: 3px;" +
                                     "line-height: 130%;" +
                                     '">' +
-                                    "All" +
+                                    PlayerName +
                                     "</div>";
-                                break;
-
-                            default:
-                                const player = getObj(ObjTypes.Player, c);
-                                if (player) {
-                                    const PlayerColor = player.get("color");
-                                    const PlayerName = player.get("displayname");
-                                    PlayerAnnounceExtra += '<div style="' +
-                                        "padding: 5px;" +
-                                        "text-align: center;" +
-                                        "font-size: " + state.TurnMarker.announcePlayerInTurnAnnounceSize + ";" +
-                                        "background-color: " + PlayerColor + ";" +
-                                        "text-shadow: " +
-                                        "-1px -1px 1px #000," +
-                                        " 1px -1px 1px #000," +
-                                        "-1px  1px 1px #000," +
-                                        " 1px  1px 1px #000;" +
-                                        "letter-spacing: 3px;" +
-                                        "line-height: 130%;" +
-                                        '">' +
-                                        PlayerName +
-                                        "</div>";
-                                }
-                                break;
-                        }
-                    });
-                }
+                            }
+                            break;
+                    }
+                });
             }
         }
 
@@ -192,11 +190,12 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
             "</div>");
     }
 
-    function announceTurn(who: string, tokenIds: Roll20Object[]) {
+    function announceTurn(who: string, tokens: Roll20Object[]) {
+        // todo make sure the name/icon is hidden if not visible to players?
         let tokenContent = "";
-        _.each(tokenIds, ((value) => {
+        _.each(tokens, ((value) => {
             tokenContent +=
-                `<a style='width:36px;height:36px;margin:1px;background:none;padding:0;border:none;' href='!turntracker claim ${value.id}'>` +
+                `<a style='width:39px;height:39px;margin:1px;background:none;padding:0;border:none;' href='!turntracker claim ${value.id}'>` +
                 `<img src="${value.get("imgsrc")}"/></a>`;
         }));
 
