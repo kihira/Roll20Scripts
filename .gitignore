@@ -3,7 +3,5 @@ logs
 *.log
 
 node_modules/
-
 build/
-
 .idea/

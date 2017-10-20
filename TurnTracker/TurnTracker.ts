@@ -199,7 +199,8 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         const turnOrder: TurnOrderEntry[] = JSON.parse(Campaign().get("turnorder"));
         if (turnOrder.length === 0) return;
 
-        const current: TurnOrderEntry = (_.first(turnOrder) as TurnOrderEntry);
+        const current: TurnOrderEntry | undefined = _.first(turnOrder);
+        if (current === undefined) return;
 
         switch (current.custom) {
             case "PC":
@@ -221,14 +222,13 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
                 sendChat("", current.pr);
 
-                advanceTurnOrder();
+                advanceTurnOrder(turnOrder);
                 break;
         }
     }
 
-    function advanceTurnOrder() {
-        const turnOrder = JSON.parse(Campaign().get("turnorder"));
-        Campaign().set("turnorder", JSON.stringify(_.rest(turnOrder).push((_.first(turnOrder) as TurnOrderEntry))));
+    function advanceTurnOrder(turnOrder: TurnOrderEntry[]) {
+        Campaign().set("turnorder", JSON.stringify(_.chain(turnOrder).rest().push(turnOrder[0]).value()));
         turnOrderChange();
     }
 
@@ -247,15 +247,13 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         const prevOrder = JSON.parse(prev.turnorder);
         const objOrder = JSON.parse(obj.get("turnorder"));
 
-        turnOrderChange();
-
-        if (_.isArray(prevOrder) && _.isArray(objOrder) && prevOrder.length && objOrder.length && objOrder[0].id !== prevOrder[0].id) {
-            // turnOrderChange(true);
+        if (_.isArray(prevOrder) && _.isArray(objOrder) && prevOrder.length && objOrder.length) {
+            turnOrderChange();
         }
     }
 
     function handleDestroyGraphic(obj: Roll20Object) {
-
+        if (obj) return;
     }
 
     function setupEventHandlers() {
