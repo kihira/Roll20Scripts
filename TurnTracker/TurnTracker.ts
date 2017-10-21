@@ -1,6 +1,7 @@
 declare var state: {TurnTracker: TurnTrackerState};
 
 class TurnTracker {
+    private chatName = "TurnTracker";
     private currentTokenId: string;
     private active: boolean;
     private activatedTokens: string[] = [];
@@ -9,7 +10,7 @@ class TurnTracker {
     public init() {
         if (state.TurnTracker === undefined) {
             state.TurnTracker = {
-                tokenURL: "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png",
+                tokenURL: "https://s3.amazonaws.com/files.d20.io/images/11920268/i0nMbVlxQLNMiO12gW9h3g/thumb.png",
                 clearOnFinish: true,
                 trackerSizeRatio: 2,
                 statusMarkerOnActed: "flying-flag",
@@ -238,8 +239,8 @@ class TurnTracker {
             "/direct " +
             "<div style='border: 3px solid #808080; background-color: #4B0082; color: white; padding: 1px 1px;'>" +
             '<div style="text-align: right; margin: 5px 5px; position: relative; vertical-align: text-bottom;">' +
-            `<a style="position:relative;z-index:1000;float:right; background-color:transparent;border:0;padding:0;
-            margin:0;display:block;" href="!tm ping-target ${this.currentTokenId}">` +
+            `<a style="position:relative;z-index:1000;float:right; background-color:transparent;border:0;padding:0;` +
+            `margin:0;display:block;" href="!tm ping-target ${this.currentTokenId}">` +
             `<img src="${cImage}" style='width:${Math.round(tokenSize * cRatio)}px;height:${tokenSize}px;padding:0px 2px;' />` +
             "</a>" +
             '<span style="position:absolute; bottom: 0;right:' + Math.round((tokenSize * cRatio) + 6) + 'px;">' +
@@ -376,7 +377,7 @@ class TurnTracker {
     }
 
     private stepAnimation() {
-        if (state.TurnTracker.animationSpeed === 0 || this.active) {
+        if (state.TurnTracker.animationSpeed === 0 || !this.active) {
             return;
         }
         const marker = this.getMarker();
@@ -398,7 +399,8 @@ class TurnTracker {
     }
 
     private whisperPlayer(playerId: string, msg: string) {
-        sendChat("", `/w player|${playerId} ${msg}`);
+        if (playerIsGM(playerId)) sendChat(this.chatName, `/w gm ${msg}`);
+        else sendChat(this.chatName, `/w player|${playerId} ${msg}`);
     }
 
     /* Function Handlers */
