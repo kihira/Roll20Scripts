@@ -10,11 +10,10 @@ class TurnTracker {
         if (state.TurnTracker === undefined) {
             state.TurnTracker = {
                 tokenURL: "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png",
-                tokenName: "TurnTracker",
                 clearOnFinish: true,
                 trackerSizeRatio: 2,
                 statusMarkerOnActed: "flying-flag",
-                animationSpeed: 1,
+                animationSpeed: 3,
             };
         }
     }
@@ -51,6 +50,39 @@ class TurnTracker {
             case "sort":
                 this.sortTracker();
                 break;
+            case "config":
+                if (tokenized.length === 2) {
+                    this.whisperPlayer(msg.playerid, "Missing config option");
+                    break;
+                }
+                if (tokenized.length === 3) {
+                    this.whisperPlayer(msg.playerid, "Missing config parameter(s)");
+                    break;
+                }
+                switch (tokenized[2]) {
+                    case "tokenURL":
+                        state.TurnTracker.tokenURL = tokenized[3];
+                        this.whisperPlayer(msg.playerid, `Set tokenURL to "${state.TurnTracker.tokenURL}"`);
+                        break;
+                    case "clearOnFinish":
+                        state.TurnTracker.clearOnFinish = tokenized[3] === "true";
+                        this.whisperPlayer(msg.playerid, `Set clearOnFinish to "${state.TurnTracker.clearOnFinish}"`);
+                        break;
+                    case "trackerSizeRatio":
+                        state.TurnTracker.trackerSizeRatio = parseInt(tokenized[3], 10);
+                        this.whisperPlayer(msg.playerid, `Set trackerSizeRatio to "${state.TurnTracker.trackerSizeRatio}"`);
+                        break;
+                    case "statusMarkerOnActed":
+                        if (tokenized[3] === "false") state.TurnTracker.statusMarkerOnActed = false;
+                        else state.TurnTracker.statusMarkerOnActed = tokenized[3];
+                        this.whisperPlayer(msg.playerid, `Set statusMarkerOnActed to "${state.TurnTracker.statusMarkerOnActed}"`);
+                        break;
+                    case "animationSpeed":
+                        state.TurnTracker.animationSpeed = parseInt(tokenized[3], 10);
+                        this.whisperPlayer(msg.playerid, `Set animationSpeed to "${state.TurnTracker.animationSpeed}"`);
+                        break;
+                }
+                break;
             default:
                 this.whisperPlayer(msg.playerid, "Unknown command");
         }
@@ -60,7 +92,7 @@ class TurnTracker {
         let marker = findObjs({type: "graphic", imgsrc: state.TurnTracker.tokenURL})[0];
         if (marker === undefined) {
             marker = createObj(ObjTypes.Graphic, {
-                name: state.TurnTracker.tokenName,
+                name: "TurnTracker",
                 pageid: Campaign().get("playerpageid"),
                 layer: "gmlayer",
                 imgsrc: state.TurnTracker.tokenURL,
@@ -128,7 +160,6 @@ class TurnTracker {
 
         Campaign().set("turnorder", JSON.stringify(turnOrder));
     }
-
 
     private claimSlot(playerId: string, tokenId: string) {
         if (_.contains(this.activatedTokens, tokenId)) {
@@ -207,8 +238,9 @@ class TurnTracker {
             "/direct " +
             "<div style='border: 3px solid #808080; background-color: #4B0082; color: white; padding: 1px 1px;'>" +
             '<div style="text-align: right; margin: 5px 5px; position: relative; vertical-align: text-bottom;">' +
-            '<a style="position:relative;z-index:1000;float:right; background-color:transparent;border:0;padding:0;margin:0;display:block;" href="!tm ping-target ' + this.currentTokenId + '">' +
-            "<img src='" + cImage + "' style='width:" + Math.round(tokenSize * cRatio) + "px; height:" + tokenSize + "px; padding: 0px 2px;' />" +
+            `<a style="position:relative;z-index:1000;float:right; background-color:transparent;border:0;padding:0;
+            margin:0;display:block;" href="!tm ping-target ${this.currentTokenId}">` +
+            `<img src="${cImage}" style='width:${Math.round(tokenSize * cRatio)}px;height:${tokenSize}px;padding:0px 2px;' />` +
             "</a>" +
             '<span style="position:absolute; bottom: 0;right:' + Math.round((tokenSize * cRatio) + 6) + 'px;">' +
             cNameString +
@@ -217,8 +249,7 @@ class TurnTracker {
             "</div>" +
             PlayerAnnounceExtra +
             '<div style="clear:both;"></div>' +
-            "</div>",
-        );
+            "</div>");
     }
 
     private announceEndTurn() {
@@ -415,7 +446,6 @@ interface TurnOrderEntry {
 
 interface TurnTrackerState {
     tokenURL: string;
-    tokenName: string;
     clearOnFinish: boolean;
     trackerSizeRatio: number;
     statusMarkerOnActed: string | boolean;
