@@ -3,7 +3,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
     let currentTokenId: string;
     let active: boolean;
-    let activatedTokens: string[];
+    let activatedTokens: string[] = [];
 
     function init() {
         if (state.TurnTracker === undefined) {
@@ -191,12 +191,14 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
     }
 
     function announceTurn(who: string, tokens: Roll20Object[]) {
-        // todo make sure the name/icon is hidden if not visible to players?
         let tokenContent = "";
+        let hiddenTokenContent = "";
         _.each(tokens, ((value) => {
-            tokenContent +=
+            const stuff =
                 `<a style='width:39px;height:39px;margin:1px;background:none;padding:0;border:none;' href='!turntracker claim ${value.id}'>` +
                 `<img src="${value.get("imgsrc")}"/></a>`;
+            if (value.get("layer") === "gmlayer") hiddenTokenContent += stuff;
+            else tokenContent += stuff;
         }));
 
         sendChat("",
@@ -211,6 +213,11 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
             "<span style='position:absolute;top:54px;font-size:10px'>Remaining tokens</span>" +
             tokenContent +
             "</div>");
+
+        if (hiddenTokenContent) {
+            sendChat("",
+                "/w gm" + hiddenTokenContent);
+        }
     }
 
     function announceClaimTurn() {
