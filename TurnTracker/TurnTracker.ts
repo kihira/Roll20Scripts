@@ -12,6 +12,7 @@ class TurnTracker {
             state.TurnTracker = {
                 tokenURL: "https://s3.amazonaws.com/files.d20.io/images/11920268/i0nMbVlxQLNMiO12gW9h3g/thumb.png",
                 clearOnFinish: true,
+                finishOnClose: false,
                 trackerSizeRatio: 2,
                 statusMarkerOnActed: "flying-flag",
                 animationSpeed: 3,
@@ -20,6 +21,7 @@ class TurnTracker {
     }
 
     public setupEventHandlers() {
+        on("change:campaign:initiativepage", _.bind(this.handleInitiativePage, this));
         on("change:campaign:turnorder", _.bind(this.handleTurnOrderChange, this));
         on("change:graphic", _.bind(this.handleTokenUpdate, this));
         on("destroy:graphic", _.bind(this.handleDestroyGraphic, this));
@@ -38,10 +40,7 @@ class TurnTracker {
                 this.turnOrderChange();
                 break;
             case "finish":
-                this.active = false;
-                clearInterval(this.markerInterval);
-                this.currentTokenId = "";
-                if (state.TurnTracker.clearOnFinish) Campaign().set("turnorder", "");
+                this.finish();
                 break;
             case "claim":
                 if (!this.active) this.whisperPlayer(msg.playerid, "TurnTracker not active yet, cannot claim slot");
@@ -69,6 +68,10 @@ class TurnTracker {
                         state.TurnTracker.clearOnFinish = tokenized[3] === "true";
                         this.whisperPlayer(msg.playerid, `Set clearOnFinish to "${state.TurnTracker.clearOnFinish}"`);
                         break;
+                    case "finishOnClose":
+                        state.TurnTracker.finishOnClose = tokenized[3] === "true";
+                        this.whisperPlayer(msg.playerid, `Set finishOnClose to "${state.TurnTracker.finishOnClose}"`);
+                        break;
                     case "trackerSizeRatio":
                         state.TurnTracker.trackerSizeRatio = parseInt(tokenized[3], 10);
                         this.whisperPlayer(msg.playerid, `Set trackerSizeRatio to "${state.TurnTracker.trackerSizeRatio}"`);
@@ -87,6 +90,13 @@ class TurnTracker {
             default:
                 this.whisperPlayer(msg.playerid, "Unknown command");
         }
+    }
+
+    private finish() {
+        this.active = false;
+        clearInterval(this.markerInterval);
+        this.currentTokenId = "";
+        if (state.TurnTracker.clearOnFinish) Campaign().set("turnorder", JSON.stringify([]));
     }
 
     private getMarker(): Roll20Object {
@@ -431,6 +441,12 @@ class TurnTracker {
     private handleDestroyGraphic(obj: Roll20Object) {
         if (obj) return;
     }
+
+    private handleInitiativePage(obj: Campaign) {
+        if (this.active && obj.get("initiativepage") === false && state.TurnTracker.finishOnClose) {
+            this.finish();
+        }
+    }
 }
 
 let TurnTrackerInstance = new TurnTracker();
@@ -449,6 +465,7 @@ interface TurnOrderEntry {
 interface TurnTrackerState {
     tokenURL: string;
     clearOnFinish: boolean;
+    finishOnClose: boolean;
     trackerSizeRatio: number;
     statusMarkerOnActed: string | boolean;
     animationSpeed: number;
