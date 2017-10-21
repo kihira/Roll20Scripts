@@ -1,3 +1,5 @@
+declare var state: {TurnTracker: TurnTrackerState};
+
 let TurnTracker = (() => { // todo need to check this works as an arrow function
     "use strict";
 
@@ -12,8 +14,10 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                 tokenName: "TurnTracker",
                 clearOnFinish: true,
                 trackerSizeRatio: 2,
+                statusMarkerOnActed: "flying-flag",
             };
         }
+        state.TurnTracker.statusMarkerOnActed = "flying-flag";
     }
 
     function handleInput(msg: Message) {
@@ -85,10 +89,13 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         }
         activatedTokens.push(tokenId);
 
-        // Get tokens and update current token
-        const currentToken = getObj(ObjTypes.Graphic, tokenId);
+        // Get and update current token
         currentTokenId = tokenId;
+        const currentToken = getObj(ObjTypes.Graphic, currentTokenId);
         handleTokenUpdate(currentToken);
+        if (state.TurnTracker.statusMarkerOnActed) {
+            currentToken.set("status_" + state.TurnTracker.statusMarkerOnActed, true);
+        }
 
         const cImage = currentToken.get("imgsrc");
         const cRatio = parseInt(currentToken.get("width"), 10) / parseInt(currentToken.get("height"), 10);
@@ -235,7 +242,11 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         // Announce end of turn if there was a previous one
         if (currentTokenId) {
             announceEndTurn();
-            getMarker().set("layer", "gmlayer");
+            getMarker().set({
+                layer: "gmlayer",
+                left: "0",
+                top: "0",
+            });
         }
 
         switch (current.custom) {
@@ -256,6 +267,13 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
             case "ROUND":
                 activatedTokens = [];
                 current.pr = (parseInt(current.pr, 10) + 1).toString();
+
+                if (state.TurnTracker.statusMarkerOnActed) {
+                    // todo not most efficent as its O(n^2) on all tokens
+                    _.each(_.union(getPlayerTokens(), getNpcTokens()), (value) => {
+                        value.set("status_" + state.TurnTracker.statusMarkerOnActed, false);
+                    });
+                }
 
                 sendChat("",
                     "/direct " +
@@ -389,4 +407,12 @@ interface TurnOrderEntry {
     pr: string;
     id: string;
     custom: string;
+}
+
+interface TurnTrackerState {
+    tokenURL: string;
+    tokenName: string;
+    clearOnFinish: boolean;
+    trackerSizeRatio: number;
+    statusMarkerOnActed: string | boolean;
 }
