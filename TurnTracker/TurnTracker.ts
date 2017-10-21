@@ -36,7 +36,7 @@ class TurnTracker {
         switch (tokenized[1]) {
             case "start":
                 this.active = true;
-                this.markerInterval = setInterval(_.bind(this.stepAnimation, this), 100);
+                this.startAnimation();
                 this.turnOrderChange();
                 break;
             case "finish":
@@ -73,7 +73,7 @@ class TurnTracker {
                         this.whisperPlayer(msg.playerid, `Set finishOnClose to "${state.TurnTracker.finishOnClose}"`);
                         break;
                     case "trackerSizeRatio":
-                        state.TurnTracker.trackerSizeRatio = parseInt(tokenized[3], 10);
+                        state.TurnTracker.trackerSizeRatio = parseFloat(tokenized[3]);
                         this.whisperPlayer(msg.playerid, `Set trackerSizeRatio to "${state.TurnTracker.trackerSizeRatio}"`);
                         break;
                     case "statusMarkerOnActed":
@@ -386,6 +386,10 @@ class TurnTracker {
         }
     }
 
+    private startAnimation() {
+        this.markerInterval = setInterval(_.bind(this.stepAnimation, this), 100);
+    }
+
     private stepAnimation() {
         if (state.TurnTracker.animationSpeed === 0 || !this.active) {
             return;
@@ -416,13 +420,22 @@ class TurnTracker {
     /* Function Handlers */
 
     private handleTokenUpdate(obj: Roll20Object) {
-        if (this.active && this.currentTokenId) {
+        if (this.active && this.currentTokenId === obj.id) {
             const marker = this.getMarker();
+            const objTop = parseInt(obj.get("top"), 10);
+            const objLeft = parseInt(obj.get("left"), 10);
+            const markerTop = parseInt(marker.get("top"), 10);
+            const markerLeft = parseInt(marker.get("left"), 10);
+
+            if (objLeft === markerLeft && objTop === markerTop) return;
+
+            clearInterval(this.markerInterval);
+            setTimeout(_.bind(this.startAnimation, this), 300); // Add animation delay to prevent visual issues
             const size = Math.max(parseInt(obj.get("height"), 10), parseInt(obj.get("width"), 10));
             marker.set({
                 layer: obj.get("layer"),
-                top: parseInt(obj.get("top"), 10),
-                left: parseInt(obj.get("left"), 10),
+                top: objTop,
+                left: objLeft,
                 height: size * state.TurnTracker.trackerSizeRatio,
                 width: size * state.TurnTracker.trackerSizeRatio,
             });
