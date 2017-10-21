@@ -35,16 +35,16 @@ class TurnTracker {
         const args = _.drop(tokenized, 2);
         switch (tokenized[1]) {
             case "start":
-                this.active = true;
-                this.startAnimation();
-                this.turnOrderChange();
+                if (this.active) this.whisperPlayer(msg.playerid, "TurnTracker already running!");
+                else this.start();
                 break;
             case "finish":
-                this.finish();
+                if (!this.active) this.whisperPlayer(msg.playerid, "TurnTracker not running!");
+                else this.finish();
                 break;
             case "claim":
                 if (!this.active) this.whisperPlayer(msg.playerid, "TurnTracker not active yet, cannot claim slot");
-                if (args.length === 0) this.whisperPlayer(msg.playerid, "Missing token id");
+                else if (args.length === 0) this.whisperPlayer(msg.playerid, "Missing token id");
                 else this.claimSlot(msg.playerid, args[0]);
                 break;
             case "sort":
@@ -90,6 +90,19 @@ class TurnTracker {
             default:
                 this.whisperPlayer(msg.playerid, "Unknown command");
         }
+    }
+
+    private start() {
+        const turnOrder = this.getTurnOrder();
+        if (_.findWhere(turnOrder, {custom: "ROUND"}) === undefined) {
+            turnOrder.push({id: "-1", custom: "ROUND", pr: "0"});
+            Campaign().set("turnorder", JSON.stringify(turnOrder));
+        }
+        this.sortTracker();
+
+        this.active = true;
+        this.startAnimation();
+        this.turnOrderChange();
     }
 
     private finish() {
@@ -154,7 +167,6 @@ class TurnTracker {
             });
 
             if (aValues.length !== 2 || bValues.length !== 2) {
-                log("Not valid data");
                 return 0; // Don't sort if not valid data
             }
 
