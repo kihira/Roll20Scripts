@@ -108,6 +108,11 @@ class TurnTracker {
     private finish() {
         this.active = false;
         clearInterval(this.markerInterval);
+        this.getMarker().set({
+            layer: "gmlayer",
+            left: "-100",
+            top: "-100",
+        });
         this.currentTokenId = "";
         if (state.TurnTracker.clearOnFinish) Campaign().set("turnorder", JSON.stringify([]));
     }
