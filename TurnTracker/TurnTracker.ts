@@ -204,7 +204,9 @@ class TurnTracker {
 
         const cNameString = "The next turn has begun!";
 
-        let PlayerAnnounceExtra = '<a style="position:relative;z-index:10000; top:-1em;float: right;font-size: .6em; color: white; border: 1px solid #cccccc; border-radius: 1em; margin: 0 .1em; font-weight: bold; padding: .1em .4em;" href="!eot">EOT &' + "#x21e8;</a>";
+        let PlayerAnnounceExtra = '<a style="position:relative;z-index:10000; top:-1em;float: right;font-size: .6em;' +
+            "color: white; border: 1px solid #cccccc; border-radius: 1em; margin: 0 .1em; font-weight: bold;" +
+            `padding: .1em .4em;" href="!eot">EOT &#x21e8;</a>`;
         const characterId = currentToken.get("represents");
         if (characterId) {
             const Char = getObj(ObjTypes.Character, characterId);
@@ -259,7 +261,7 @@ class TurnTracker {
         sendChat(
             "",
             "/direct " +
-            "<div style='border: 3px solid #808080; background-color: #4B0082; color: white; padding: 1px 1px;'>" +
+            "<div style='border: 3px solid #101010; background-color: #284666; color: white; padding: 1px 1px;'>" +
             '<div style="text-align: right; margin: 5px 5px; position: relative; vertical-align: text-bottom;">' +
             `<a style="position:relative;z-index:1000;float:right; background-color:transparent;border:0;padding:0;` +
             `margin:0;display:block;" href="!tm ping-target ${this.currentTokenId}">` +
@@ -275,32 +277,7 @@ class TurnTracker {
             "</div>");
     }
 
-    private announceEndTurn() {
-        const previousToken = getObj(ObjTypes.Graphic, this.currentTokenId);
-        const img = previousToken.get("imgsrc");
-        const imgAspect = parseInt(previousToken.get("width"), 10) / parseInt(previousToken.get("height"), 10);
-        let pNameString = "The Previous turn is done.";
-        if (previousToken && previousToken.get("showplayers_name")) {
-            pNameString = "<span style='" +
-                'font-family: Baskerville,"Baskerville Old Face","Goudy Old Style",Garamond,"Times New Roman",serif;' +
-                "text-decoration: underline;" +
-                "font-size: 130%;" +
-                "'>" +
-                previousToken.get("name") +
-                "</span>'s turn is done.";
-        }
-        const tokenSize = 70;
-        sendChat("",
-            "/direct " +
-            '<div style="text-align: left;  margin: 5px 5px;">' +
-            '<a style="position:relative;z-index:1000;float:left; background-color:transparent;border:0;padding:0;margin:0;display:block;" href="!tm ping-target ' + previousToken.id + '">' +
-            "<img src='" + img + "' style='width:" + Math.round(tokenSize * imgAspect) + "px; height:" + tokenSize + "px; padding: 0px 2px;' />" +
-            "</a>" +
-            pNameString +
-            "</div>");
-    }
-
-    private announceTurn(who: string, tokens: Roll20Object[]) {
+    private announceTurn(who: string, tokens: Roll20Object[], previous?: Roll20Object) {
         let tokenContent = "";
         let hiddenTokenContent = "";
         _.each(tokens, ((value) => {
@@ -311,6 +288,31 @@ class TurnTracker {
             else tokenContent += stuff;
         }));
 
+        // Announce end of turn if there was a previous one
+        let endTurnAnnounce = "";
+        if (previous) {
+            const img = previous.get("imgsrc");
+            const imgAspect = parseInt(previous.get("width"), 10) / parseInt(previous.get("height"), 10);
+            let pNameString = "The Previous turn is done.";
+            if (previous.get("showplayers_name")) {
+                pNameString = "<span style='" +
+                    'font-family: Baskerville,"Baskerville Old Face","Goudy Old Style",Garamond,"Times New Roman",serif;' +
+                    "text-decoration: underline;" +
+                    "font-size: 130%;" +
+                    "'>" +
+                    previous.get("name") +
+                    "</span>'s turn is done.";
+            }
+            const tokenSize = 70;
+            endTurnAnnounce =
+                '<div style="text-align: left;  margin: 5px 5px;">' +
+                `<a style="position:relative;z-index:1000;float:left; background-color:transparent;border:0;padding:0;margin:0;display:block;" href="!tm ping-target ${previous.id}">` +
+                `<img src='${img}' style='width:${Math.round(tokenSize * imgAspect)}px; height:${tokenSize}px; padding: 0px 2px;' />` +
+                "</a>" +
+                pNameString +
+                "</div>";
+        }
+
         sendChat("",
             "/direct " +
             `<div style='padding: 1px;color:white;border:10px solid transparent;` +
@@ -318,6 +320,7 @@ class TurnTracker {
             `border-image:url(http://imgsrv.roll20.net/?src=i.imgur.com/NjP3JsT.png) 15 fill;` +
             `background:#284666;` +
             `font-family:"teuton mager","helvetica neue","helvetica","arial",sans-serif;font-weight:bold;'>` +
+            endTurnAnnounce +
             `<div style='text-align:center;font-size:20px;padding:5px 0 5px 5px;vertical-align:text-top'>${who} Turn</div>` +
             "<hr style='border-top:none;margin-top:15px;'>" +
             "<span style='position:absolute;top:54px;font-size:10px'>Remaining tokens</span>" +
@@ -330,10 +333,6 @@ class TurnTracker {
         }
     }
 
-    private announceClaimTurn() {
-        // todo make sure the name/icon is hidden if not visible to players?
-    }
-
     private turnOrderChange() {
         if (!Campaign().get("initiativepage")) return;
 
@@ -341,30 +340,12 @@ class TurnTracker {
         const current: TurnOrderEntry | undefined = _.first(turnOrder);
         if (current === undefined) return;
 
-        // Announce end of turn if there was a previous one
-        if (this.currentTokenId) {
-            this.announceEndTurn();
-            this.getMarker().set({
-                layer: "gmlayer",
-                left: "0",
-                top: "0",
-            });
-        }
-
         switch (current.custom) {
             case "PC":
                 this.announceTurn("PC", this.getPlayerTokens());
-                // _.each(getPlayerTokens(), (value) => {
-                //     whisperPlayer(value.get("controlledby"), `[Claim Slot](!turntracker claim ${value.get("id")})`);
-                // });
                 break;
             case "NPC":
                 this.announceTurn("NPC", this.getNpcTokens());
-                // let message = "";
-                // _.each(getNpcTokens(), (value) => {
-                //     message += `[${value.get("name")}](!turntracker claim ${value.get("id")})`;
-                // });
-                // sendChat("", "/w gm " + message);
                 break;
             case "ROUND":
                 this.activatedTokens = [];
