@@ -321,15 +321,21 @@ class TurnTracker {
             `background:#284666;` +
             `font-family:"teuton mager","helvetica neue","helvetica","arial",sans-serif;font-weight:bold;'>` +
             endTurnAnnounce +
-            `<div style='text-align:center;font-size:20px;padding:5px 0 5px 5px;vertical-align:text-top'>${who} Turn</div>` +
-            "<hr style='border-top:none;margin-top:15px;'>" +
-            "<span style='position:absolute;top:54px;font-size:10px'>Remaining tokens</span>" +
+            `<div style='text-align:center;font-size:20px;padding:5px 0 5px;vertical-align:text-top'>${who} Turn</div>` +
+            "<hr style='border-top:none;margin-top:15px;margin-bottom:2px;'>" +
+            "<div style='font-size:10px'>Remaining tokens</div>" +
             tokenContent +
             "</div>");
 
         if (hiddenTokenContent) {
-            sendChat("",
-                "/w gm" + hiddenTokenContent);
+            sendChat(this.chatName, "/w gm " +
+                `<div style='padding: 1px;color:white;border:10px solid transparent;` +
+                `background:#284666;` +
+                `font-family:"teuton mager","helvetica neue","helvetica","arial",sans-serif;font-weight:bold;'>` +
+                endTurnAnnounce +
+                "<div style='font-size:10px'>Hidden remaining tokens</div>" +
+                hiddenTokenContent +
+                "</div>");
         }
     }
 
