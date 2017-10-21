@@ -11,6 +11,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                 tokenURL: "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png",
                 tokenName: "TurnTracker",
                 clearOnFinish: true,
+                trackerSizeRatio: 2,
             };
         }
     }
@@ -87,7 +88,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         // Get tokens and update current token
         const currentToken = getObj(ObjTypes.Graphic, tokenId);
         currentTokenId = tokenId;
-        checkTokenMove(currentToken);
+        handleTokenUpdate(currentToken);
 
         const cImage = currentToken.get("imgsrc");
         const cRatio = parseInt(currentToken.get("width"), 10) / parseInt(currentToken.get("height"), 10);
@@ -234,6 +235,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         // Announce end of turn if there was a previous one
         if (currentTokenId) {
             announceEndTurn();
+            getMarker().set("layer", "gmlayer");
         }
 
         switch (current.custom) {
@@ -295,13 +297,16 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
     /* Function Handlers */
 
-    function checkTokenMove(obj: Roll20Object) {
+    function handleTokenUpdate(obj: Roll20Object) {
         if (active && currentTokenId) {
             const marker = getMarker();
+            const size = Math.max(parseInt(obj.get("height"), 10), parseInt(obj.get("width"), 10));
             marker.set({
                 layer: obj.get("layer"),
-                top: obj.get("top"),
-                left: obj.get("left"),
+                top: parseInt(obj.get("top"), 10),
+                left: parseInt(obj.get("left"), 10),
+                height: size * state.TurnTracker.trackerSizeRatio,
+                width: size * state.TurnTracker.trackerSizeRatio,
             });
         }
     }
@@ -321,7 +326,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
     function setupEventHandlers() {
         on("change:campaign:turnorder", handleTurnOrderChange);
-        on("change:graphic", checkTokenMove);
+        on("change:graphic", handleTokenUpdate);
         on("destroy:graphic", handleDestroyGraphic);
         on("chat:message", handleInput);
     }
