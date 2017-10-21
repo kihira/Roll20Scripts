@@ -1,13 +1,12 @@
 declare var state: {TurnTracker: TurnTrackerState};
 
-let TurnTracker = (() => { // todo need to check this works as an arrow function
-    "use strict";
+class TurnTracker {
+    private currentTokenId: string;
+    private active: boolean;
+    private activatedTokens: string[] = [];
+    private markerInterval: number;
 
-    let currentTokenId: string;
-    let active: boolean;
-    let activatedTokens: string[] = [];
-
-    function init() {
+    public init() {
         if (state.TurnTracker === undefined) {
             state.TurnTracker = {
                 tokenURL: "https://s3.amazonaws.com/files.d20.io/images/4095816/086YSl3v0Kz3SlDAu245Vg/thumb.png",
@@ -15,35 +14,46 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                 clearOnFinish: true,
                 trackerSizeRatio: 2,
                 statusMarkerOnActed: "flying-flag",
+                animationSpeed: 1,
             };
         }
-        state.TurnTracker.statusMarkerOnActed = "flying-flag";
+
+        // this.stepAnimation();
     }
 
-    function handleInput(msg: Message) {
+    public setupEventHandlers() {
+        on("change:campaign:turnorder", _.bind(this.handleTurnOrderChange, this));
+        on("change:graphic", _.bind(this.handleTokenUpdate, this));
+        on("destroy:graphic", _.bind(this.handleDestroyGraphic, this));
+        on("chat:message", _.bind(this.handleInput, this));
+    }
+
+    private handleInput(msg: Message) {
         if (msg.type !== "api" || !msg.content.startsWith("!turntracker")) return;
 
         const tokenized = msg.content.split(" ");
         const args = _.drop(tokenized, 2);
         switch (tokenized[1]) {
             case "start":
-                active = true;
-                turnOrderChange();
+                this.active = true;
+                this.markerInterval = setInterval(_.bind(this.stepAnimation, this), 100);
+                this.turnOrderChange();
                 break;
             case "finish":
-                active = false;
-                currentTokenId = "";
+                this.active = false;
+                clearInterval(this.markerInterval);
+                this.currentTokenId = "";
                 if (state.TurnTracker.clearOnFinish) Campaign().set("turnorder", "");
                 break;
             case "claim":
-                if (!active) whisperPlayer(msg.playerid, "TurnTracker not active yet, cannot claim slot");
-                if (args.length === 0) whisperPlayer(msg.playerid, "Missing token id");
-                else claimSlot(msg.playerid, args[0]);
+                if (!this.active) this.whisperPlayer(msg.playerid, "TurnTracker not active yet, cannot claim slot");
+                if (args.length === 0) this.whisperPlayer(msg.playerid, "Missing token id");
+                else this.claimSlot(msg.playerid, args[0]);
                 break;
         }
     }
 
-    function getMarker(): Roll20Object {
+    private getMarker(): Roll20Object {
         let marker = findObjs({type: "graphic", imgsrc: state.TurnTracker.tokenURL})[0];
         if (marker === undefined) {
             marker = createObj(ObjTypes.Graphic, {
@@ -62,37 +72,37 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
     }
 
     // Gets remaining player tokens
-    function getPlayerTokens() {
+    private getPlayerTokens() {
         const currPage = Campaign().get("playerpageid");
         return filterObjs((value) => {
             if (value.get("type") !== "graphic" || value.get("subtype") !== "token") return false;
             if (!value.get("represents") || !value.get("controlledby")) return false;
             return !_.contains(value.get("controlledby").split(","), "all") &&
-                !_.contains(activatedTokens, value.get("id")) && value.get("pageid") === currPage;
+                !_.contains(this.activatedTokens, value.get("id")) && value.get("pageid") === currPage;
         });
     }
 
     // Gets remaining npc tokens
-    function getNpcTokens() {
+    private getNpcTokens() {
         const currPage = Campaign().get("playerpageid");
         return filterObjs((value) => {
             if (value.get("type") !== "graphic" || value.get("subtype") !== "token") return false;
             if (!value.get("represents") || value.get("controlledby")) return false;
-            return !_.contains(activatedTokens, value.get("id")) && value.get("pageid") === currPage;
+            return !_.contains(this.activatedTokens, value.get("id")) && value.get("pageid") === currPage;
         });
     }
 
-    function claimSlot(playerId: string, tokenId: string) {
-        if (_.contains(activatedTokens, tokenId)) {
-            whisperPlayer(playerId, "Cannot claim slot for this token, has already acted");
+    private claimSlot(playerId: string, tokenId: string) {
+        if (_.contains(this.activatedTokens, tokenId)) {
+            this.whisperPlayer(playerId, "Cannot claim slot for this token, has already acted");
             return;
         }
-        activatedTokens.push(tokenId);
+        this.activatedTokens.push(tokenId);
 
         // Get and update current token
-        currentTokenId = tokenId;
-        const currentToken = getObj(ObjTypes.Graphic, currentTokenId);
-        handleTokenUpdate(currentToken);
+        this.currentTokenId = tokenId;
+        const currentToken = getObj(ObjTypes.Graphic, this.currentTokenId);
+        this.handleTokenUpdate(currentToken);
         if (state.TurnTracker.statusMarkerOnActed) {
             currentToken.set("status_" + state.TurnTracker.statusMarkerOnActed, true);
         }
@@ -100,7 +110,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         const cImage = currentToken.get("imgsrc");
         const cRatio = parseInt(currentToken.get("width"), 10) / parseInt(currentToken.get("height"), 10);
 
-        let cNameString = "The next turn has begun!";
+        const cNameString = "The next turn has begun!";
 
         let PlayerAnnounceExtra = '<a style="position:relative;z-index:10000; top:-1em;float: right;font-size: .6em; color: white; border: 1px solid #cccccc; border-radius: 1em; margin: 0 .1em; font-weight: bold; padding: .1em .4em;" href="!eot">EOT &' + "#x21e8;</a>";
         const characterId = currentToken.get("represents");
@@ -159,7 +169,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
             "/direct " +
             "<div style='border: 3px solid #808080; background-color: #4B0082; color: white; padding: 1px 1px;'>" +
             '<div style="text-align: right; margin: 5px 5px; position: relative; vertical-align: text-bottom;">' +
-            '<a style="position:relative;z-index:1000;float:right; background-color:transparent;border:0;padding:0;margin:0;display:block;" href="!tm ping-target ' + currentTokenId + '">' +
+            '<a style="position:relative;z-index:1000;float:right; background-color:transparent;border:0;padding:0;margin:0;display:block;" href="!tm ping-target ' + this.currentTokenId + '">' +
             "<img src='" + cImage + "' style='width:" + Math.round(tokenSize * cRatio) + "px; height:" + tokenSize + "px; padding: 0px 2px;' />" +
             "</a>" +
             '<span style="position:absolute; bottom: 0;right:' + Math.round((tokenSize * cRatio) + 6) + 'px;">' +
@@ -173,8 +183,8 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         );
     }
 
-    function announceEndTurn() {
-        const previousToken = getObj(ObjTypes.Graphic, currentTokenId);
+    private announceEndTurn() {
+        const previousToken = getObj(ObjTypes.Graphic, this.currentTokenId);
         const img = previousToken.get("imgsrc");
         const imgAspect = parseInt(previousToken.get("width"), 10) / parseInt(previousToken.get("height"), 10);
         let pNameString = "The Previous turn is done.";
@@ -198,7 +208,7 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
             "</div>");
     }
 
-    function announceTurn(who: string, tokens: Roll20Object[]) {
+    private announceTurn(who: string, tokens: Roll20Object[]) {
         let tokenContent = "";
         let hiddenTokenContent = "";
         _.each(tokens, ((value) => {
@@ -228,21 +238,21 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         }
     }
 
-    function announceClaimTurn() {
+    private announceClaimTurn() {
         // todo make sure the name/icon is hidden if not visible to players?
     }
 
-    function turnOrderChange() {
+    private turnOrderChange() {
         if (!Campaign().get("initiativepage")) return;
 
-        const turnOrder: TurnOrderEntry[] = getTurnOrder();
+        const turnOrder: TurnOrderEntry[] = this.getTurnOrder();
         const current: TurnOrderEntry | undefined = _.first(turnOrder);
         if (current === undefined) return;
 
         // Announce end of turn if there was a previous one
-        if (currentTokenId) {
-            announceEndTurn();
-            getMarker().set({
+        if (this.currentTokenId) {
+            this.announceEndTurn();
+            this.getMarker().set({
                 layer: "gmlayer",
                 left: "0",
                 top: "0",
@@ -251,13 +261,13 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
 
         switch (current.custom) {
             case "PC":
-                announceTurn("PC", getPlayerTokens());
+                this.announceTurn("PC", this.getPlayerTokens());
                 // _.each(getPlayerTokens(), (value) => {
                 //     whisperPlayer(value.get("controlledby"), `[Claim Slot](!turntracker claim ${value.get("id")})`);
                 // });
                 break;
             case "NPC":
-                announceTurn("NPC", getNpcTokens());
+                this.announceTurn("NPC", this.getNpcTokens());
                 // let message = "";
                 // _.each(getNpcTokens(), (value) => {
                 //     message += `[${value.get("name")}](!turntracker claim ${value.get("id")})`;
@@ -265,12 +275,12 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                 // sendChat("", "/w gm " + message);
                 break;
             case "ROUND":
-                activatedTokens = [];
+                this.activatedTokens = [];
                 current.pr = (parseInt(current.pr, 10) + 1).toString();
 
                 if (state.TurnTracker.statusMarkerOnActed) {
                     // todo not most efficent as its O(n^2) on all tokens
-                    _.each(_.union(getPlayerTokens(), getNpcTokens()), (value) => {
+                    _.each(_.union(this.getPlayerTokens(), this.getNpcTokens()), (value) => {
                         value.set("status_" + state.TurnTracker.statusMarkerOnActed, false);
                     });
                 }
@@ -291,33 +301,42 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
                     "Round " + current.pr +
                     "</div>");
 
-                advanceTurnOrder(turnOrder);
+                this.advanceTurnOrder(turnOrder);
                 break;
         }
+    }
+
+    private stepAnimation() {
+        if (state.TurnTracker.animationSpeed === 0 || this.active) {
+            return;
+        }
+        const marker = this.getMarker();
+        const rotation = (parseInt(marker.get("rotation"), 10) + state.TurnTracker.animationSpeed) % 360;
+        marker.set("rotation", rotation);
     }
 
     /**
      * Handy function to always return an array when getting the turn order
      * @returns {TurnOrderEntry[]}
      */
-    function getTurnOrder(): TurnOrderEntry[] {
+    private getTurnOrder(): TurnOrderEntry[] {
         return JSON.parse(Campaign().get("turnorder") || "[]");
     }
 
-    function advanceTurnOrder(turnOrder: TurnOrderEntry[]) {
+    private advanceTurnOrder(turnOrder: TurnOrderEntry[]) {
         Campaign().set("turnorder", JSON.stringify(_.chain(turnOrder).rest().push(turnOrder[0]).value()));
-        turnOrderChange();
+        this.turnOrderChange();
     }
 
-    function whisperPlayer(playerId: string, msg: string) {
+    private whisperPlayer(playerId: string, msg: string) {
         sendChat("", `/w player|${playerId} ${msg}`);
     }
 
     /* Function Handlers */
 
-    function handleTokenUpdate(obj: Roll20Object) {
-        if (active && currentTokenId) {
-            const marker = getMarker();
+    private handleTokenUpdate(obj: Roll20Object) {
+        if (this.active && this.currentTokenId) {
+            const marker = this.getMarker();
             const size = Math.max(parseInt(obj.get("height"), 10), parseInt(obj.get("width"), 10));
             marker.set({
                 layer: obj.get("layer"),
@@ -329,35 +348,25 @@ let TurnTracker = (() => { // todo need to check this works as an arrow function
         }
     }
 
-    function handleTurnOrderChange(obj: Campaign, prev: {turnorder: string}) {
+    private handleTurnOrderChange(obj: Campaign, prev: {turnorder: string}) {
         const prevOrder = JSON.parse(prev.turnorder);
         const objOrder = JSON.parse(obj.get("turnorder"));
 
         if (_.isArray(prevOrder) && _.isArray(objOrder) && prevOrder.length && objOrder.length) {
-            turnOrderChange();
+            this.turnOrderChange();
         }
     }
 
-    function handleDestroyGraphic(obj: Roll20Object) {
+    private handleDestroyGraphic(obj: Roll20Object) {
         if (obj) return;
     }
+}
 
-    function setupEventHandlers() {
-        on("change:campaign:turnorder", handleTurnOrderChange);
-        on("change:graphic", handleTokenUpdate);
-        on("destroy:graphic", handleDestroyGraphic);
-        on("chat:message", handleInput);
-    }
-
-    return {
-        Init: init,
-        SetupEventHandlers: setupEventHandlers,
-    };
-})();
+let TurnTrackerInstance = new TurnTracker();
 
 on("ready", () => {
-    TurnTracker.Init();
-    TurnTracker.SetupEventHandlers();
+    TurnTrackerInstance.init();
+    TurnTrackerInstance.setupEventHandlers();
 });
 
 on("chat:message", (msg) => {
@@ -415,4 +424,5 @@ interface TurnTrackerState {
     clearOnFinish: boolean;
     trackerSizeRatio: number;
     statusMarkerOnActed: string | boolean;
+    animationSpeed: number;
 }
