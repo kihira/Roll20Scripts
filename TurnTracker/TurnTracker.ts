@@ -17,8 +17,6 @@ class TurnTracker {
                 animationSpeed: 1,
             };
         }
-
-        // this.stepAnimation();
     }
 
     public setupEventHandlers() {
@@ -50,6 +48,11 @@ class TurnTracker {
                 if (args.length === 0) this.whisperPlayer(msg.playerid, "Missing token id");
                 else this.claimSlot(msg.playerid, args[0]);
                 break;
+            case "sort":
+                this.sortTracker();
+                break;
+            default:
+                this.whisperPlayer(msg.playerid, "Unknown command");
         }
     }
 
@@ -91,6 +94,41 @@ class TurnTracker {
             return !_.contains(this.activatedTokens, value.get("id")) && value.get("pageid") === currPage;
         });
     }
+
+    private sortTracker() {
+        const turnOrder = this.getTurnOrder();
+
+        turnOrder.sort((a: TurnOrderEntry, b: TurnOrderEntry) => {
+            if (a.custom.startsWith("ROUND")) return 100;
+
+            const aValues: number[] = [];
+            const bValues: number[] = [];
+            _.each(a.pr.split(":"), (value) => {
+                aValues.push(parseInt(value, 10));
+            });
+            _.each(b.pr.split(":"), (value) => {
+                bValues.push(parseInt(value, 10));
+            });
+
+            if (aValues.length !== 2 || bValues.length !== 2) {
+                log("Not valid data");
+                return 0; // Don't sort if not valid data
+            }
+
+            // Sort by successes
+            if (aValues[0] > bValues[0]) return -1;
+            if (aValues[0] < bValues[0]) return 1;
+            // Sort by advantage
+            if (aValues[1] > bValues[1]) return -1;
+            if (aValues[1] < bValues[1]) return 1;
+            // Sort by type (NPCs always go last)
+            if (a.custom === "PC") return -1;
+            return 1;
+        });
+
+        Campaign().set("turnorder", JSON.stringify(turnOrder));
+    }
+
 
     private claimSlot(playerId: string, tokenId: string) {
         if (_.contains(this.activatedTokens, tokenId)) {
@@ -368,49 +406,6 @@ on("ready", () => {
     TurnTrackerInstance.init();
     TurnTrackerInstance.setupEventHandlers();
 });
-
-on("chat:message", (msg) => {
-    if (msg.type === "api" && msg.content === "!tracker sort") {
-        sortTracker();
-    }
-});
-
-function sortTracker() {
-    const turnOrder = JSON.parse(Campaign().get("turnorder") || "[]");
-
-    // var roundIndex = _.findIndex(turnOrder, function (value) { return value["custom"].startsWith("ROUND"); });
-    // log("Round index: " + roundIndex);
-
-    turnOrder.sort((a: TurnOrderEntry, b: TurnOrderEntry) => {
-        if (a.custom.startsWith("ROUND")) return 100;
-
-        const aValues: number[] = [];
-        const bValues: number[] = [];
-        _.each(a.pr.split(":"), (value) => {
-            aValues.push(parseInt(value, 10));
-        });
-        _.each(b.pr.split(":"), (value) => {
-            bValues.push(parseInt(value, 10));
-        });
-
-        if (aValues.length !== 2 || bValues.length !== 2) {
-            log("Not valid data");
-            return 0; // Don't sort if not valid data
-        }
-
-        // Sort by successes
-        if (aValues[0] > bValues[0]) return -1;
-        if (aValues[0] < bValues[0]) return 1;
-        // Sort by advantage
-        if (aValues[1] > bValues[1]) return -1;
-        if (aValues[1] < bValues[1]) return 1;
-        // Sort by type (NPCs always go last)
-        if (a.custom === "PC") return -1;
-        return 1;
-    });
-
-    Campaign().set("turnorder", JSON.stringify(turnOrder));
-}
 
 interface TurnOrderEntry {
     pr: string;
