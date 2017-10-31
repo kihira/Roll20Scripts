@@ -70,6 +70,25 @@ class SWRPG {
                 sendChat(this.chatName, this.buildDutyObligationTable("Obligation Check", "obligation"));
                 break;
             case "minion":
+                switch (tokenized[2]) {
+                    case "reset-all":
+                        this.resetGroups();
+                        break;
+                    case "create":
+                        if (msg.selected === undefined || msg.selected.length === 0) {
+                            this.whisperGM("Select a token to create a group");
+                            break;
+                        }
+                        this.createGroup(msg.selected[0]._id, parseInt(tokenized[3], 10), tokenized[4] === "true");
+                        break;
+                    case "activate":
+                        if (msg.selected === undefined || msg.selected.length === 0) {
+                            this.whisperGM("Select a token to activate");
+                            break;
+                        }
+                        this.activateGroup(msg.selected[0]._id);
+                        break;
+                }
                 break;
         }
     }
