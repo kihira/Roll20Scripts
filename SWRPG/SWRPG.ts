@@ -3,16 +3,13 @@ enum LogLevel {
     INFO = 2
 }
 
-interface Obligations {
-    [key: string]: {
-        amount: number,
-        charID: string,
-        lowerBound: number,
-        upperBound: number,
-        type: string,
-        rowId: string,
-        name: string
-    };
+interface Obligation {
+    amount: number;
+    charID: string;
+    lowerBound: number;
+    upperBound: number;
+    type: string;
+    name: string;
 }
 
 // noinspection JSUnusedGlobalSymbols
@@ -40,7 +37,8 @@ class SWRPG {
         const characters = findObjs({type: "character", archived: false});
         _.each(characters, (char) => {
             // We know that it would be in someones journal so can use that to reduce calls. Ignore 'all'
-            if (!_.contains(char.get("controlledby").split(","), "all")) {
+            const controlledBy = char.get("controlledby");
+            if (controlledBy.length > 0 && !_.contains(controlledBy.split(","), "all")) {
                 this.characters.push(char.get("id"));
             }
 
@@ -53,15 +51,15 @@ class SWRPG {
 
         // Create state property if it does not exist
         if (!state.swrpg) {
-            state.swrpg = {
-                minionGroups: {
-                    groups: [],
-                    woundBar: "bar1",
-                    sizeBar: "bar3",
-                    colours: ["red", "blue", "green", "brown", "purple", "pink", "yellow"],
-                    activeColours: []
-                },
-            };
+        state.swrpg = {
+            minionGroups: {
+                groups: [],
+                woundBar: "bar1",
+                sizeBar: "bar3",
+                colours: ["red", "blue", "green", "brown", "purple", "pink", "yellow"],
+                activeColours: []
+            },
+        };
         }
     }
     public setupEventHandlers() {
@@ -132,51 +130,29 @@ class SWRPG {
         }
     }
     private buildDutyObligationTable(title: string, pattern: string) {
-        const obligations: Obligations = {};
-        let template = "&{template:duty} {{title=" + title + "}} ";
-        const valuePattern = new RegExp("repeating_" + pattern + "_.+_" + pattern + "-mag");
-        const typePattern = new RegExp("repeating_" + pattern + "_.+_" + pattern + "-type");
+        const obligations: Obligation[] = [];
+        let template = `&{template:duty} {{title=${title}}} `;
 
         // Build table
         _.each(this.characters, (id: string) => {
-            const attrs = findObjs({type: "attribute", characterid: id});
             const name = getAttrByName(id, "name");
 
-            _.each(attrs, (attr) => {
-                const rowId = attr.get("name").substr(("repeating_" + pattern + "_").length, 20);
-                if (attr.get("name").match(valuePattern)) { // Value
-                    if (obligations[rowId] !== undefined) {
-                        obligations[rowId].amount = parseInt(attr.get("current"), 10);
-                    }
-                    else {
-                        obligations[rowId] = {
-                            amount: parseInt(attr.get("current"), 10),
-                            charID: id,
-                            lowerBound: 0,
-                            upperBound: 0,
-                            type: "",
-                            name,
-                            rowId
-                        };
-                    }
-                }
-                else if (attr.get("name").match(typePattern)) { // Type
-                    if (obligations[rowId] !== undefined) {
-                        obligations[rowId].type = attr.get("current");
-                    }
-                    else {
-                        obligations[rowId] = {
-                            amount: 0,
-                            charID: "",
-                            lowerBound: 0,
-                            upperBound: 0,
-                            type: attr.get("current"),
-                            rowId,
-                            name
-                        };
-                    }
-                }
-            });
+            for (let i = 0; i < 5; i++) {
+                // Will cause an error message in console if one doesn't exist but won't break anything
+                const typeAttr = getAttrByName(id, `repeating_${pattern}_$${i}_${pattern}-type`);
+                if (typeAttr.length === 0) break;
+
+                const valueAttr = getAttrByName(id, `repeating_${pattern}_$${i}_${pattern}-mag`);
+
+                obligations.push({
+                    amount: parseInt(valueAttr, 10),
+                    charID: id,
+                    lowerBound: 0,
+                    upperBound: 0,
+                    type: typeAttr,
+                    name
+                });
+            }
         });
 
         // Roll
@@ -200,8 +176,8 @@ class SWRPG {
                 template += `{{Activated=<b>${entry.name}</b>}}`;
             }
 
-            template += `{{${entry.rowId}=<td>${entry.name}</td><td>${entry.type}</td>` +
-                        `<td>${entry.lowerBound}-${entry.upperBound}</td>}}`;
+            template += `{{${entry.name}=<td>${entry.name}</td><td>${entry.type}</td>` +
+                `<td>${entry.lowerBound}-${entry.upperBound}</td>}}`;
             currValue = entry.upperBound + 1;
         });
 
