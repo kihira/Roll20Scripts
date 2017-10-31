@@ -15,6 +15,7 @@ interface Obligations {
     };
 }
 
+// noinspection JSUnusedGlobalSymbols
 interface State {
     swrpg: {
         minionGroups: {
@@ -29,10 +30,8 @@ interface State {
 
 class SWRPG {
     private chatName = "Dice System";
-    private settings = {
-        gmsheetname: "-DicePool",
-        debug: true
-    };
+    private gmSheetName = "-DicePool";
+    private debug = true;
 
     private characters: string[] = []; // Array of player characters
     private gmsheet: string;
@@ -45,7 +44,7 @@ class SWRPG {
                 this.characters.push(char.get("id"));
             }
 
-            if (char.get("name") === this.settings.gmsheetname) {
+            if (char.get("name") === this.gmSheetName) {
                 this.gmsheet = char.get("id");
                 this.logger("init", "GM Sheet: " + this.gmsheet, LogLevel.DEBUG);
             }
@@ -144,7 +143,7 @@ class SWRPG {
 
             _.each(attrs, (attr) => {
                 const rowId = attr.get("name").substr(("repeating_" + pattern + "_").length, 20);
-                if (attr.get("name").match(valuePattern)) {
+                if (attr.get("name").match(valuePattern)) { // Value
                     if (obligations[rowId] !== undefined) {
                         obligations[rowId].amount = parseInt(attr.get("current"), 10);
                     }
@@ -159,8 +158,8 @@ class SWRPG {
                             rowId
                         };
                     }
-                } // Value
-                else if (attr.get("name").match(typePattern)) {
+                }
+                else if (attr.get("name").match(typePattern)) { // Type
                     if (obligations[rowId] !== undefined) {
                         obligations[rowId].type = attr.get("current");
                     }
@@ -175,7 +174,7 @@ class SWRPG {
                             name
                         };
                     }
-                } // Type
+                }
             });
         });
 
@@ -190,27 +189,18 @@ class SWRPG {
             }
         }
 
-        // Check if anyone has been activated
-        _.each(obligations, (char) => {
-            if (roll >= char.lowerBound && roll <= char.upperBound) {
-                template += "{{Activated=<b>" + char.name + "</b>}}";
-            }
-        });
-
         // Output table into template
         let currValue = 1;
         _.each(obligations, (entry) => {
-            let activated = false;
             entry.lowerBound = currValue;
             entry.upperBound = (currValue + entry.amount) - 1;
 
-            // Check if activated
             if (roll >= entry.lowerBound && roll <= entry.upperBound) {
-                activated = true;
-                template += "{{Activated=<b>" + entry.name + "</b>}}";
+                template += `{{Activated=<b>${entry.name}</b>}}`;
             }
 
-            template += `{{${entry.rowId}=<td>${entry.name}</td><td>${entry.type}</td><td>${entry.lowerBound}-${entry.upperBound}</td>}}`;
+            template += `{{${entry.rowId}=<td>${entry.name}</td><td>${entry.type}</td>` +
+                        `<td>${entry.lowerBound}-${entry.upperBound}</td>}}`;
             currValue = entry.upperBound + 1;
         });
 
@@ -241,7 +231,7 @@ class SWRPG {
         const redSoak = Math.max(0, parseInt(getAttrByName(charID, "soak"), 10) - pierce);
         const valParry = 2 + parseInt(getAttrByName(charID, "talent-parry"), 10);
 
-        return "max(0,[[" + damage + "[Damage]-" + redSoak + "[Soak]" + (parry ? ("-" + valParry + "[Parry]") : "") + "+0d0]])";
+        return `max(0,[[${damage}[Damage]-${redSoak}[Soak]" ${(parry ? (`-${valParry}[Parry]`) : "")} +0d0]])`;
     }
 
     private activate(tokenID: string) {
@@ -315,7 +305,7 @@ class SWRPG {
 
     private logger(functionName: string, msg: string, level: LogLevel) {
         if (level === undefined) level = LogLevel.DEBUG;
-        if (level === LogLevel.INFO || (level === LogLevel.DEBUG && this.settings.debug)) {
+        if (level === LogLevel.INFO || (level === LogLevel.DEBUG && this.debug)) {
             log(`[SWRPG] ${functionName}: ${msg}`);
         }
     }
