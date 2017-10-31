@@ -3,15 +3,6 @@ enum LogLevel {
     INFO = 2
 }
 
-interface Obligation {
-    amount: number;
-    charID: string;
-    lowerBound: number;
-    upperBound: number;
-    type: string;
-    name: string;
-}
-
 // noinspection JSUnusedGlobalSymbols
 interface State {
     swrpg: {
@@ -129,56 +120,41 @@ class SWRPG {
             break;
         }
     }
-    private buildDutyObligationTable(title: string, pattern: string) {
-        const obligations: Obligation[] = [];
+    private buildDutyObligationTable(title: string, pattern: string): string {
         let template = `&{template:duty} {{title=${title}}} `;
 
-        // Build table
-        _.each(this.characters, (id: string) => {
-            const name = getAttrByName(id, "name");
-
-            for (let i = 0; i < 5; i++) {
-                // Will cause an error message in console if one doesn't exist but won't break anything
-                const typeAttr = getAttrByName(id, `repeating_${pattern}_$${i}_${pattern}-type`);
-                if (typeAttr.length === 0) break;
-
-                const valueAttr = getAttrByName(id, `repeating_${pattern}_$${i}_${pattern}-mag`);
-
-                obligations.push({
-                    amount: parseInt(valueAttr, 10),
-                    charID: id,
-                    lowerBound: 0,
-                    upperBound: 0,
-                    type: typeAttr,
-                    name
-                });
-            }
-        });
-
-        // Roll
+        // Roll dice to get obligation value and check if doubles
         const roll = randomInteger(100);
         template += "{{roll=" + roll + "}} ";
 
-        if (roll >= 10 && roll < 100) {
+        if (roll > 10 && roll < 100) {
             const rollStr = roll.toString();
             if (rollStr[0] === rollStr[1]) {
                 template += "{{double=Yes!}} ";
             }
         }
 
-        // Output table into template
+        // Build table
         let currValue = 1;
-        _.each(obligations, (entry) => {
-            entry.lowerBound = currValue;
-            entry.upperBound = (currValue + entry.amount) - 1;
+        _.each(this.characters, (id: string) => {
+            const name = getAttrByName(id, "name");
 
-            if (roll >= entry.lowerBound && roll <= entry.upperBound) {
-                template += `{{Activated=<b>${entry.name}</b>}}`;
+            for (let i = 0; i < 5; i++) {
+                // Will cause an error message in console if one doesn't exist but won't break anything
+                const type = getAttrByName(id, `repeating_${pattern}_$${i}_${pattern}-type`);
+                if (type.length === 0) break;
+
+                const mag = parseInt(getAttrByName(id, `repeating_${pattern}_$${i}_${pattern}-mag`), 10);
+                const lowerBound = currValue;
+                const upperBound = (currValue + mag) - 1;
+
+                if (roll >= lowerBound && roll <= upperBound) {
+                    template += `{{Activated=<b>${name}</b>}}`;
+                }
+                template += `{{${name}=<td>${name}</td><td>${type}</td><td>${lowerBound}-${upperBound}</td>}}`;
+
+                currValue = upperBound + 1;
             }
-
-            template += `{{${entry.name}=<td>${entry.name}</td><td>${entry.type}</td>` +
-                `<td>${entry.lowerBound}-${entry.upperBound}</td>}}`;
-            currValue = entry.upperBound + 1;
         });
 
         return template;
