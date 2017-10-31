@@ -1,3 +1,5 @@
+import Timer = NodeJS.Timer;
+
 declare var state: {TurnTracker: TurnTrackerState};
 
 class TurnTracker {
@@ -5,7 +7,7 @@ class TurnTracker {
     private currentTokenId: string;
     private active: boolean;
     private activatedTokens: string[] = [];
-    private markerInterval: number;
+    private markerInterval: Timer;
 
     public init() {
         if (state.TurnTracker === undefined) {
@@ -438,6 +440,7 @@ class TurnTracker {
             const size = Math.max(parseInt(obj.get("height"), 10), parseInt(obj.get("width"), 10));
             marker.set({
                 layer: obj.get("layer"),
+                pageid: obj.get("pageid"),
                 top: objTop,
                 left: objLeft,
                 height: size * state.TurnTracker.trackerSizeRatio,
