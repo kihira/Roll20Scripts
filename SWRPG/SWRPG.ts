@@ -106,19 +106,20 @@ class SWRPG {
     }
     private handleDestroyGraphic(obj: Roll20Object) {
         if (obj.get("_subtype") !== "token") return;
+
         for (const group of state.swrpg.minionGroups.groups) {
             if (!_.contains(group, obj.id)) continue;
 
-            if (group.length === 1) { // If last minion, remove group and free colour
+            if (group.length === 1) { // If last minion token, remove group and free marker
                 const statusMarkers = obj.get("statusmarkers").split(",");
-                const marker = _.find(statusMarkers, (value) => {
+                const markerIndex = _.findIndex(statusMarkers, (value) => {
                     return _.contains(state.swrpg.minionGroups.colours, value);
                 });
 
-                if (marker !== undefined) {
-                    state.swrpg.minionGroups.activeColours = _.reject(state.swrpg.minionGroups.activeColours, (value) => value === marker);
-                    state.swrpg.minionGroups.groups.splice(state.swrpg.minionGroups.groups.indexOf(group), 1);
-                }
+                if (markerIndex === undefined) break;
+
+                state.swrpg.minionGroups.activeColours.splice(markerIndex, 1);
+                state.swrpg.minionGroups.groups.splice(_.indexOf(state.swrpg.minionGroups.groups, group), 1);
             }
             else {
                 group.splice(group.indexOf(obj.id), 1); // Remove from array
@@ -206,13 +207,19 @@ class SWRPG {
 
         return template;
     }
-    private getColour() {
-        for (const col in state.swrpg.minionGroups.colours) {
-            if (state.swrpg.minionGroups.activeColours.indexOf(col) === -1) {
+
+    /**
+     * Gets an unused colour for minion groups and returns it. Returns false if none available
+     * @returns {string | false}
+     */
+    private getColour(): string | false {
+        for (const col of state.swrpg.minionGroups.colours) {
+            if (!_.contains(state.swrpg.minionGroups.activeColours, col)) {
                 state.swrpg.minionGroups.activeColours.push(col);
-                return state.swrpg.minionGroups.colours[col];
+                return col;
             }
         }
+        return false;
     }
 
     private whisperGM(message: string) {
