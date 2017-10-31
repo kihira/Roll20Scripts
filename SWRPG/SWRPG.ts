@@ -30,11 +30,11 @@ class SWRPG {
             // We know that it would be in someones journal so can use that to reduce calls. Ignore 'all'
             const controlledBy = char.get("controlledby");
             if (controlledBy.length > 0 && !_.contains(controlledBy.split(","), "all")) {
-                this.characters.push(char.get("id"));
+                this.characters.push(char.id);
             }
 
             if (char.get("name") === this.gmSheetName) {
-                this.gmsheet = char.get("id");
+                this.gmsheet = char.id;
                 this.logger("init", "GM Sheet: " + this.gmsheet, LogLevel.DEBUG);
             }
         });
@@ -42,19 +42,19 @@ class SWRPG {
 
         // Create state property if it does not exist
         if (!state.swrpg) {
-        state.swrpg = {
-            minionGroups: {
-                groups: [],
-                woundBar: "bar1",
-                sizeBar: "bar3",
-                colours: ["red", "blue", "green", "brown", "purple", "pink", "yellow"],
-                activeColours: []
-            },
-        };
+            state.swrpg = {
+                minionGroups: {
+                    groups: [],
+                    woundBar: "bar1",
+                    sizeBar: "bar3",
+                    colours: ["red", "blue", "green", "brown", "purple", "pink", "yellow"],
+                    activeColours: []
+                },
+            };
         }
     }
     public setupEventHandlers() {
-        on("change:graphic:" + state.swrpg.minionGroups.woundBar + "_value", _.bind(this.handleChangeGraphic, this));
+        on(`change:graphic:${state.swrpg.minionGroups.woundBar}_value`, _.bind(this.handleChangeGraphic, this));
         on("chat:message", _.bind(this.handleInput, this));
     }
     private handleInput(msg: Message) {
@@ -193,57 +193,61 @@ class SWRPG {
         return `max(0,[[${damage}[Damage]-${redSoak}[Soak]" ${(parry ? (`-${valParry}[Parry]`) : "")} +0d0]])`;
     }
 
-    private activate(tokenID: string) {
+    private activateGroup(tokenID: string) {
         const currToken = getObj(ObjTypes.Graphic, tokenID);
         const character = getObj(ObjTypes.Character, currToken.get("represents"));
         const size = currToken.get(state.swrpg.minionGroups.sizeBar + "_value");
         const attribute = findObjs({
             type: "attribute",
-            characterid: currToken.get("represents"),
+            characterid: character.id,
             name: "npc-minion-group-size"
         }, {caseInsensitive: true})[0];
         attribute.set("current", size);
-        this.whisperGM("Minion group size to " + size + " for " + character.get("name"));
+        this.whisperGM(`Minion group size to ${size} for ${character.get("name")}`);
     }
 
-    private createGroup(tokenID: string, count: number, createMinions: boolean) {
+    private createGroup(tokenID: string, count: number, createTokens: boolean) {
         const currToken = getObj(ObjTypes.Graphic, tokenID);
         const charID = currToken.get("represents");
-        const wounds = parseInt(getAttrByName(charID, "npc-wounds", "max"), 10) * (count + 1);
+        const wounds = parseInt(getAttrByName(charID, "wounds", "max"), 10) * (count + 1);
 
-        if (getAttrByName(charID, "npc-type") === "minion") {
-            currToken.set(state.swrpg.minionGroups.sizeBar + "_value", count + 1);
-            currToken.set(state.swrpg.minionGroups.sizeBar + "_max", count + 1);
-            currToken.set(state.swrpg.minionGroups.woundBar + "_value", wounds);
-            currToken.set(state.swrpg.minionGroups.woundBar + "_max", wounds);
-            if (createMinions) {
-                const group = [ tokenID ];
-                const col = this.getColour();
-                currToken.set("status_" + col, true);
+        if (getAttrByName(charID, "npc-type") !== "minion") {
+            this.whisperGM("Cannot create group from rivals");
+            return;
+        }
 
-                for (let i = 0; i < count; i++) {
-                    const obj = createObj(ObjTypes.Graphic, {
-                        name: currToken.get("name"),
-                        controlledby: currToken.get("controlledby"),
-                        represents: charID,
-                        left: currToken.get("left") + (i + 1) * -70,
-                        top: currToken.get("top"),
-                        width: currToken.get("width"),
-                        height: currToken.get("height"),
-                        showname: true,
-                        imgsrc: currToken.get("imgsrc").replace("max", "thumb"),
-                        pageid: currToken.get("pageid"),
-                        layer: currToken.get("layer")
-                    });
-                    obj.set("status_" + col, true);
-                    obj.set(state.swrpg.minionGroups.sizeBar + "_value", count + 1);
-                    obj.set(state.swrpg.minionGroups.sizeBar + "_max", count + 1);
-                    obj.set(state.swrpg.minionGroups.woundBar + "_value", wounds);
-                    obj.set(state.swrpg.minionGroups.woundBar + "_max", wounds);
-                    group.push(obj.get("_id"));
-                }
-                state.swrpg.minionGroups.groups.push(group);
+        currToken.set(state.swrpg.minionGroups.sizeBar + "_value", count + 1);
+        currToken.set(state.swrpg.minionGroups.sizeBar + "_max", count + 1);
+        currToken.set(state.swrpg.minionGroups.woundBar + "_value", wounds);
+        currToken.set(state.swrpg.minionGroups.woundBar + "_max", wounds);
+
+        if (createTokens) {
+            const group = [ tokenID ];
+            const col = this.getColour();
+            currToken.set("status_" + col, true);
+
+            for (let i = 0; i < count; i++) {
+                const obj = createObj(ObjTypes.Graphic, {
+                    name: currToken.get("name"),
+                    controlledby: currToken.get("controlledby"),
+                    represents: charID,
+                    left: currToken.get("left") + (i + 1) * -parseInt(currToken.get("left"), 10),
+                    top: currToken.get("top"),
+                    width: currToken.get("width"),
+                    height: currToken.get("height"),
+                    showname: true,
+                    imgsrc: currToken.get("imgsrc").replace("max", "thumb"),
+                    pageid: currToken.get("pageid"),
+                    layer: currToken.get("layer")
+                });
+                obj.set("status_" + col, true);
+                obj.set(state.swrpg.minionGroups.sizeBar + "_value", count + 1);
+                obj.set(state.swrpg.minionGroups.sizeBar + "_max", count + 1);
+                obj.set(state.swrpg.minionGroups.woundBar + "_value", wounds);
+                obj.set(state.swrpg.minionGroups.woundBar + "_max", wounds);
+                group.push(obj.id);
             }
+            state.swrpg.minionGroups.groups.push(group);
         }
     }
 
@@ -256,7 +260,7 @@ class SWRPG {
         return false;
     }
 
-    private reset() {
+    private resetGroups() {
         state.swrpg.minionGroups.groups = [];
         state.swrpg.minionGroups.activeColours = [];
         this.whisperGM("Minion groups reset");
