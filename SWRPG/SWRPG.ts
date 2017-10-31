@@ -37,10 +37,10 @@ class SWRPG {
     private gmsheet: string;
 
     public init() {
-        const characters = findObjs({type: "character"});
+        const characters = findObjs({type: "character", archived: false});
         _.each(characters, (char) => {
             // We know that it would be in someones journal so can use that to reduce calls. Ignore 'all'
-            if (char.get("controlledby").length > 4 && parseInt(getAttrByName(char.get("id"), "pcgm"), 10) === 1) {
+            if (!_.contains(char.get("controlledby").split(","), "all")) {
                 this.characters.push(char.get("id"));
             }
 
