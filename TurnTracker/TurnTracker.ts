@@ -1,6 +1,8 @@
 import Timer = NodeJS.Timer;
 
-declare var state: {TurnTracker: TurnTrackerState};
+interface State {
+    TurnTracker: TurnTrackerState;
+}
 
 class TurnTracker {
     private chatName = "TurnTracker";
